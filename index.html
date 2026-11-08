@@ -259,20 +259,14 @@
             </div>
         </div>
 
-        <!-- Индикатор курса у Ашота (Живой рынок) + Статус кулдауна -->
-        <div class="mt-2 grid grid-cols-12 gap-1.5">
-            <div onclick="switchTab('inventory')" class="col-span-8 bg-[#0b0d0e] rounded-md px-2.5 py-1.5 flex items-center justify-between text-xs border border-[#252b31] cursor-pointer hover:border-amber-500/50 transition">
-                <div class="flex items-center space-x-1.5 overflow-hidden">
-                    <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                    <span class="text-slate-400 font-mono-tech text-[10px] shrink-0">АШОТ:</span>
-                    <span id="market-ticker" class="font-bold text-amber-400 text-[10px] truncate font-mono-tech">Загрузка...</span>
-                </div>
-                <span id="market-timer" class="text-[10px] text-slate-400 font-mono-tech ml-1 shrink-0">02:00</span>
+        <!-- Индикатор курса у Ашота (Живой рынок) -->
+        <div onclick="switchTab('inventory')" class="mt-2 bg-[#0b0d0e] rounded-md px-2.5 py-1.5 flex items-center justify-between text-xs border border-[#252b31] cursor-pointer hover:border-amber-500/50 transition">
+            <div class="flex items-center space-x-2 overflow-hidden">
+                <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                <span class="text-slate-400 font-mono-tech text-[11px] shrink-0">СКУПКА АШОТА:</span>
+                <span id="market-ticker" class="font-bold text-amber-400 text-[11px] truncate font-mono-tech">Загрузка котировок...</span>
             </div>
-            <div onclick="switchTab('work')" class="col-span-4 bg-[#0b0d0e] rounded-md px-2 py-1.5 flex items-center justify-between text-[10px] font-mono-tech border border-[#252b31] cursor-pointer hover:border-amber-500/50" title="Тапай мешки в Халтурке, чтобы сбивать перезарядку!">
-                <span class="text-slate-400">ЗАМОК:</span>
-                <span id="global-cd-badge" class="font-extrabold text-emerald-400">ГОТОВ</span>
-            </div>
+            <span id="market-timer" class="text-[11px] text-slate-400 font-mono-tech ml-2 shrink-0">02:00</span>
         </div>
 
         <!-- СРОЧНЫЙ ВЫЗОВ ОТ МИХАЛЫЧА (Появляется по таймеру) -->
@@ -501,14 +495,15 @@
             </div>
 
             <!-- Халтурка с выносливостью и сбитием перезарядки замков -->
+            <!-- Халтурка с выносливостью -->
             <div class="bg-[#14171a] rounded-xl p-4 border border-[#2c333a] space-y-3">
                 <div class="flex justify-between items-start">
                     <div>
                         <h3 class="text-sm font-black text-white uppercase">Разгрузка вагонов (Халтурка)</h3>
-                        <p class="text-[11px] text-slate-400">Каждый мешок даёт рубли и <b class="text-amber-400">срезает 1.5 сек.</b> с перезарядки чемоданов!</p>
+                        <p class="text-[11px] text-slate-400">На крайний случай, если слил весь банк в нулину</p>
                     </div>
                     <span class="px-2 py-1 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono-tech font-bold text-xs shrink-0">
-                        +<span id="click-power">12</span> ₽ / мешок
+                        +<span id="click-power">14</span> ₽ / мешок
                     </span>
                 </div>
 
@@ -521,14 +516,13 @@
                     <div class="w-full h-2.5 bg-[#0b0d0e] rounded-full overflow-hidden border border-[#2c333a]">
                         <div id="stamina-bar" class="h-full bg-gradient-to-r from-amber-600 to-emerald-500 transition-all duration-200" style="width: 100%;"></div>
                     </div>
-                    <div class="text-[10px] text-slate-500 font-mono-tech text-right">+1 ⚡ каждые 3 сек. (1 тап = 2 ⚡ и −1.5 сек. таймера)</div>
+                    <div class="text-[10px] text-slate-500 font-mono-tech text-right">+1 ⚡ каждые 3 сек. (1 тап = 2 ⚡)</div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2.5">
                     <button onclick="doSideHustle(event)" class="py-4 rounded-xl bg-[#1b2024] hover:bg-[#22282e] border border-[#2c333a] active:border-amber-500 transition flex flex-col items-center justify-center space-y-1 btn-active">
                         <i class="fa-solid fa-dolly text-2xl text-amber-400"></i>
                         <span class="text-xs font-mono-tech font-extrabold text-white uppercase">Таскать мешки</span>
-                        <span class="text-[9px] font-mono-tech text-amber-400">−1.5с перезарядки</span>
                     </button>
 
                     <button onclick="collectScrapMetal()" id="scrap-btn" class="py-4 rounded-xl bg-[#1b2024] hover:bg-[#22282e] border border-[#2c333a] transition flex flex-col items-center justify-center space-y-1 btn-active">
@@ -740,15 +734,56 @@
                     </div>
                 </div>
 
-                <!-- Кнопки управления открытием -->
-                <div id="case-open-controls" class="space-y-2">
+                <!-- Карточка мульти-открытия пачки (3, 5 или 10 шт.) -->
+                <div id="multi-won-wrapper" class="hidden rounded-xl p-3 bg-[#0b0d0e] border-2 border-amber-500/60 space-y-3">
+                    <div class="flex items-center justify-between border-b border-[#22272e] pb-2">
+                        <span id="multi-won-title" class="text-xs font-mono-tech font-black text-amber-400 uppercase">Улов из пачки (5 шт.)</span>
+                        <span id="multi-won-total" class="text-xs font-mono-tech font-extrabold text-emerald-400">Итого: 0 ₽</span>
+                    </div>
+                    <div id="multi-won-keys-banner" class="hidden text-[11px] font-mono-tech font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 py-1 px-2.5 rounded text-center">
+                        + НАЙДЕНО ОТМЫЧЕК КГБ: 1 ШТ.!
+                    </div>
+                    <div id="multi-won-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1"></div>
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button onclick="keepMultiWonItems()" class="py-2.5 rounded-lg bg-[#1b2024] border border-[#2c333a] hover:border-amber-500 text-white font-mono-tech font-bold text-xs uppercase btn-active">
+                            Всё в багажник
+                        </button>
+                        <button onclick="sellMultiWonItemsNow()" id="sell-multi-won-btn" class="py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono-tech font-bold text-xs uppercase btn-active">
+                            Слить всё сразу
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Кнопки управления открытием + Ашотовский кэшбэк за опт -->
+                <div id="case-open-controls" class="space-y-2.5">
+                    <div class="bg-[#0b0d0e] p-2 rounded-xl border border-[#2c333a] space-y-1.5">
+                        <div class="flex items-center justify-between text-[10px] font-mono-tech">
+                            <span class="text-slate-400 uppercase font-bold">Ашотовский кэшбэк за опт:</span>
+                            <span id="pack-discount-label" class="text-amber-400 font-extrabold">Без скидки</span>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1.5 font-mono-tech">
+                            <button onclick="setCasePackSize(1)" data-pack="1" class="pack-size-btn py-1.5 rounded-lg text-xs font-extrabold border border-amber-500 bg-amber-500/20 text-white btn-active">
+                                1 шт. <span class="block text-[9px] text-slate-400">0%</span>
+                            </button>
+                            <button onclick="setCasePackSize(3)" data-pack="3" class="pack-size-btn py-1.5 rounded-lg text-xs font-extrabold border border-[#2c333a] bg-[#14171a] text-slate-300 btn-active">
+                                3 шт. <span class="block text-[9px] text-emerald-400">-3%</span>
+                            </button>
+                            <button onclick="setCasePackSize(5)" data-pack="5" class="pack-size-btn py-1.5 rounded-lg text-xs font-extrabold border border-[#2c333a] bg-[#14171a] text-slate-300 btn-active">
+                                5 шт. <span class="block text-[9px] text-emerald-400">-6%</span>
+                            </button>
+                            <button onclick="setCasePackSize(10)" data-pack="10" class="pack-size-btn py-1.5 rounded-lg text-xs font-extrabold border border-[#2c333a] bg-[#14171a] text-slate-300 btn-active">
+                                10 шт. <span class="block text-[9px] text-amber-400">-10%</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="flex items-center justify-between bg-[#0b0d0e] px-3 py-2 rounded-lg border border-[#2c333a]">
                         <span class="text-xs text-slate-300 font-mono-tech">Быстрый взлом (без ленты)</span>
                         <input type="checkbox" id="fast-open-toggle" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
                     </div>
 
                     <button onclick="startCaseOpening(false)" id="open-case-btn" class="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono-tech font-black text-xs uppercase shadow-lg btn-active">
-                        Вскрыть за 3 000 ₽
+                        Вскрыть 1 шт. за 3 000 ₽
                     </button>
 
                     <button onclick="startCaseOpening(true)" id="open-with-keys-btn" class="hidden w-full py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-mono-tech font-black text-xs uppercase shadow-lg btn-active">
@@ -1290,7 +1325,7 @@
     const FLOAT_CONDITIONS = [
         { id: 'worn', name: 'С дефектом', mult: 0.7, color: 'text-slate-400 border-slate-500 bg-slate-800/60', weight: 32 },
         { id: 'used', name: 'Б/У Рабочий', mult: 1.0, color: 'text-sky-300 border-sky-500/60 bg-sky-950/50', weight: 52 },
-        { id: 'perfect', name: 'В плёнке', mult: 1.65, color: 'text-amber-300 border-amber-400 bg-amber-500/20', weight: 16 }
+        { id: 'perfect', name: 'В плёнке', mult: 1.8, color: 'text-amber-300 border-amber-400 bg-amber-500/20', weight: 16 }
     ];
 
     const RARITIES = {
@@ -1300,7 +1335,10 @@
         rare: { name: 'Редкий', color: 'text-sky-400', badge: 'bg-sky-700', css: 'rarity-rare', glow: 'glow-rare' },
         criminal: { name: 'Блатной', color: 'text-orange-400', badge: 'bg-orange-700', css: 'rarity-criminal', glow: 'glow-criminal' },
         syndicate: { name: 'Синдикат', color: 'text-teal-400', badge: 'bg-teal-700', css: 'rarity-syndicate', glow: 'glow-syndicate' },
-        bunker: { name: 'Бункер', color: 'text-purple-400', badge: 'bg-purple-800', css: 'rarity-bunker', glow: 'glow-bunker' },
+        epic: { name: 'Эпический', color: 'text-purple-400', badge: 'bg-purple-700', css: 'rarity-epic', glow: 'glow-epic' },
+        legendary: { name: 'Авторитет', color: 'text-amber-400', badge: 'bg-amber-600', css: 'rarity-legendary', glow: 'glow-legendary' },
+        ultra: { name: 'Ультра', color: 'text-pink-400', badge: 'bg-pink-700', css: 'rarity-ultra', glow: 'glow-ultra' },
+        bunker: { name: 'Бункер', color: 'text-purple-300', badge: 'bg-purple-800', css: 'rarity-bunker', glow: 'glow-bunker' },
         secret: { name: 'Спецхран', color: 'text-red-400', badge: 'bg-red-700', css: 'rarity-secret', glow: 'glow-secret' },
         contraband: { name: 'Контрабанда', color: 'text-rose-400', badge: 'bg-rose-700', css: 'rarity-contraband', glow: 'glow-secret' }
     };
@@ -1309,47 +1347,44 @@
         {
             id: 'case_common',
             tier: 1,
-            cooldownSec: 6,
             name: 'Гаражный чермет',
             subtitle: 'Ржавый ящик из-под верстака',
             price: 3000,
             rarity: 'common',
-            rangeText: '1 650 – 11 000 ₽',
+            rangeText: '1 650 – 9 500 ₽',
             keyDropChance: 0,
             loot: [
-                { id: 'c1', name: 'Тапик Nokia 3310', art: 'nokia', price: 1650, rarity: 'common', category: 'tech', weight: 28 },
-                { id: 'c_b1', name: 'Советский кипятильник с накипью', art: 'boiler_ussr', price: 1850, rarity: 'common', category: 'tech', weight: 24 },
-                { id: 'c_s10', name: 'Потерянная головка на 10', art: 'socket_10mm', price: 2200, rarity: 'common', category: 'auto', weight: 20 },
-                { id: 'c4', name: 'Бухта медной проволоки', art: 'copper_coil', price: 3400, rarity: 'uncommon', category: 'auto', weight: 14 },
-                { id: 'c5', name: 'Серебряный бисмарк', art: 'chain', price: 4600, rarity: 'uncommon', category: 'luxury', weight: 8 },
-                { id: 'c_bm1', name: 'Слесарная бородка Максима', art: 'maxim_beard', price: 5800, rarity: 'rare', category: 'auto', weight: 4 },
-                { id: 'c7', name: 'Командирские часы СССР', art: 'watch', price: 7800, rarity: 'rare', category: 'luxury', weight: 2 }
+                { id: 'c_b1', name: 'Советский кипятильник с накипью', art: 'boiler_ussr', price: 1650, rarity: 'common', category: 'tech', weight: 22 },
+                { id: 'c_s10', name: 'Потерянная головка на 10', art: 'socket_10mm', price: 1950, rarity: 'common', category: 'auto', weight: 20 },
+                { id: 'c1', name: 'Тапик Nokia 3310', art: 'nokia', price: 2200, rarity: 'common', category: 'tech', weight: 18 },
+                { id: 'c_st', name: 'Банка белого стаута из заначки', art: 'stout_can', price: 2650, rarity: 'uncommon', category: 'art', weight: 14 },
+                { id: 'c4', name: 'Бухта медной проволоки', art: 'copper_coil', price: 3400, rarity: 'uncommon', category: 'auto', weight: 12 },
+                { id: 'c_mb1', name: 'Слесарная бородка Максима', art: 'maxim_beard', price: 4800, rarity: 'rare', category: 'auto', weight: 9 },
+                { id: 'c7', name: 'Командирские часы СССР', art: 'watch', price: 6800, rarity: 'rare', category: 'luxury', weight: 5 }
             ]
         },
         {
             id: 'case_uncommon',
             tier: 2,
-            cooldownSec: 7,
             name: 'Вокзальная сумка',
             subtitle: 'Клетчатый баул челнока из 90-х',
-            price: 8500,
+            price: 8000,
             rarity: 'uncommon',
-            rangeText: '4 500 – 32 000 ₽',
+            rangeText: '4 200 – 27 000 ₽',
             keyDropChance: 0.02,
             loot: [
-                { id: 'u_bar', name: 'Кожаная барсетка с жетонами', art: 'barsetka_bag', price: 4500, rarity: 'common', category: 'art', weight: 28 },
-                { id: 'u2', name: 'Магнитола Pioneer со съёмной панелью', art: 'car_radio', price: 6200, rarity: 'uncommon', category: 'auto', weight: 24 },
-                { id: 'u_st', name: 'Банка белого стаута «Братва»', art: 'stout_can', price: 7800, rarity: 'uncommon', category: 'art', weight: 18 },
-                { id: 'u_bm2', name: 'Перепускной браток Максим', art: 'maxim_protok', price: 9800, rarity: 'yard', category: 'auto', weight: 14 },
-                { id: 'u5', name: 'Золотая печатка 585', art: 'ring', price: 14500, rarity: 'rare', category: 'luxury', weight: 9 },
-                { id: 'u6', name: 'Прошитая PS4 Slim', art: 'console', price: 18500, rarity: 'rare', category: 'tech', weight: 5 },
-                { id: 'u7', name: 'Швейцарский Tissot', art: 'watch', price: 24000, rarity: 'epic', category: 'luxury', weight: 2 }
+                { id: 'u1', name: 'Набор головок СССР', art: 'wrench', price: 4200, rarity: 'common', category: 'auto', weight: 24 },
+                { id: 'u_gb', name: 'Термос с крепким Габа-чаем', art: 'gaba_kettle', price: 5100, rarity: 'uncommon', category: 'art', weight: 22 },
+                { id: 'u2', name: 'Магнитола Pioneer со съёмной панелью', art: 'car_radio', price: 6400, rarity: 'uncommon', category: 'auto', weight: 18 },
+                { id: 'u_br', name: 'Кожаная барсетка с жетонами', art: 'barsetka_bag', price: 8500, rarity: 'yard', category: 'luxury', weight: 15 },
+                { id: 'u4', name: 'Фотоаппарат «Зенит-Е»', art: 'retro_camera', price: 11200, rarity: 'rare', category: 'art', weight: 11 },
+                { id: 'u6', name: 'Прошитая PS4 Slim', art: 'console', price: 15500, rarity: 'rare', category: 'tech', weight: 6 },
+                { id: 'u7', name: 'Швейцарский Tissot', art: 'watch', price: 19500, rarity: 'epic', category: 'luxury', weight: 4 }
             ]
         },
         {
             id: 'case_yard',
             tier: 3,
-            cooldownSec: 8,
             name: 'Подвальный ящик',
             subtitle: 'Складской хабар ЖКХ и дворовых гаражей',
             price: 18000,
@@ -1368,15 +1403,14 @@
         {
             id: 'case_rare',
             tier: 4,
-            cooldownSec: 10,
             name: 'Контейнер перекупа',
             subtitle: 'Изъят со штрафстоянки у автоподборщика',
             price: 42000,
             rarity: 'rare',
-            rangeText: '16 000 – 135 000 ₽',
+            rangeText: '18 500 – 135 000 ₽',
             keyDropChance: 0.05,
             loot: [
-                { id: 'r_wh', name: 'Антирадар Whistler из Барнаула', art: 'whistler_radar', price: 16500, rarity: 'common', category: 'auto', weight: 32 },
+                { id: 'r_wh', name: 'Антирадар Whistler из Барнаула', art: 'whistler_radar', price: 18500, rarity: 'common', category: 'auto', weight: 32 },
                 { id: 'r1', name: 'Срезанный катализатор', art: 'catalyst', price: 24000, rarity: 'yard', category: 'auto', weight: 26 },
                 { id: 'r2', name: 'Айфон 15 без Айклауда', art: 'smartphone', price: 36000, rarity: 'rare', category: 'tech', weight: 19 },
                 { id: 'r4', name: 'Видеокарта RTX 4080 Super', art: 'gpu_rig', price: 54000, rarity: 'epic', category: 'tech', weight: 11 },
@@ -1387,16 +1421,15 @@
         {
             id: 'case_criminal',
             tier: 5,
-            cooldownSec: 11,
             name: 'Воровской общак',
             subtitle: 'Железный сундук из малины за городом',
             price: 95000,
             rarity: 'criminal',
-            rangeText: '34 000 – 290 000 ₽',
+            rangeText: '42 000 – 290 000 ₽',
             keyDropChance: 0.07,
             loot: [
-                { id: 'cr1', name: 'Комплект раций с шифрованием', art: 'jammer', price: 35000, rarity: 'rare', category: 'tech', weight: 33 },
-                { id: 'cr_esp', name: 'Пояс-компас на ESP32 с вибро', art: 'esp32_belt', price: 54000, rarity: 'criminal', category: 'tech', weight: 26 },
+                { id: 'cr1', name: 'Комплект раций с шифрованием', art: 'jammer', price: 42000, rarity: 'rare', category: 'tech', weight: 33 },
+                { id: 'cr_esp', name: 'Пояс-компас на ESP32 с вибро', art: 'esp32_belt', price: 58000, rarity: 'criminal', category: 'tech', weight: 26 },
                 { id: 'cr2', name: 'Золотая цепь «Якорь» 200г', art: 'chain', price: 82000, rarity: 'criminal', category: 'luxury', weight: 18 },
                 { id: 'cr4', name: 'Майнинг-риг на 6 карт', art: 'gpu_rig', price: 125000, rarity: 'epic', category: 'tech', weight: 11 },
                 { id: 'cr3', name: 'Пакет с двойным дном', art: 'contraband_pack', price: 140000, rarity: 'contraband', category: 'art', isContraband: true, weight: 7 },
@@ -1407,16 +1440,15 @@
         {
             id: 'case_syndicate',
             tier: 6,
-            cooldownSec: 12,
             name: 'Гараж Синдиката',
             subtitle: 'Закрытый бокс тюнинг-ателье и хакеров',
             price: 195000,
             rarity: 'syndicate',
-            rangeText: '68 000 – 590 000 ₽',
+            rangeText: '85 000 – 590 000 ₽',
             keyDropChance: 0.09,
             loot: [
-                { id: 'sy1', name: 'Ноутбук с Kali Linux и эксплойтами', art: 'kali_laptop', price: 72000, rarity: 'rare', category: 'tech', weight: 34 },
-                { id: 'sy2', name: 'Печать ликвидированного ООО', art: 'company_stamp', price: 115000, rarity: 'criminal', category: 'art', weight: 26 },
+                { id: 'sy1', name: 'Ноутбук с Kali Linux и эксплойтами', art: 'kali_laptop', price: 85000, rarity: 'rare', category: 'tech', weight: 34 },
+                { id: 'sy2', name: 'Печать ликвидированного ООО', art: 'company_stamp', price: 125000, rarity: 'criminal', category: 'art', weight: 26 },
                 { id: 'sy3', name: 'Неоновая бородка Максима (Амулет)', art: 'maxim_beard', price: 185000, rarity: 'syndicate', category: 'luxury', weight: 18 },
                 { id: 'sy4', name: 'Турбо-браток Максим Stage 3', art: 'maxim_protok', price: 260000, rarity: 'epic', category: 'auto', weight: 11 },
                 { id: 'sy5', name: 'Опечатанный тубус Синдиката', art: 'contraband_pack', price: 295000, rarity: 'contraband', category: 'art', isContraband: true, weight: 6 },
@@ -1426,35 +1458,33 @@
         {
             id: 'case_epic',
             tier: 7,
-            cooldownSec: 14,
             name: 'Сейф чиновника',
             subtitle: 'Вытащили из бани во время проверки',
             price: 390000,
             rarity: 'epic',
-            rangeText: '135 000 – 1 150 000 ₽',
+            rangeText: '175 000 – 1 150 000 ₽',
             keyDropChance: 0.12,
             loot: [
-                { id: 'e1', name: 'Серверная стойка ИИ', art: 'gpu_rig', price: 140000, rarity: 'rare', category: 'tech', weight: 35 },
-                { id: 'e2', name: 'Ключи от Камри 3.5 на спецномерах', art: 'car_key', price: 245000, rarity: 'epic', category: 'auto', weight: 26 },
+                { id: 'e1', name: 'Серверная стойка ИИ', art: 'gpu_rig', price: 175000, rarity: 'rare', category: 'tech', weight: 35 },
+                { id: 'e2', name: 'Ключи от Камри 3.5 на спецномерах', art: 'car_key', price: 255000, rarity: 'epic', category: 'auto', weight: 26 },
                 { id: 'e4', name: 'Банковский слиток 250г', art: 'gold_bar', price: 380000, rarity: 'epic', category: 'luxury', weight: 18 },
                 { id: 'e3', name: 'Дипломат с откатом', art: 'contraband_pack', price: 460000, rarity: 'contraband', category: 'art', isContraband: true, weight: 8 },
-                { id: 'e5', name: 'Холодный кошелёк Ledger с ETH', art: 'crypto_drive', price: 560000, rarity: 'legendary', category: 'tech', weight: 8 },
+                { id: 'e5', name: 'Холодный кошелёк Ledger с ETH', art: 'crypto_drive', price: 585000, rarity: 'legendary', category: 'tech', weight: 8 },
                 { id: 'e6', name: 'Золотой Ролекс Субмаринер', art: 'watch', price: 740000, rarity: 'legendary', category: 'luxury', weight: 5 }
             ]
         },
         {
             id: 'case_legendary',
             tier: 8,
-            cooldownSec: 15,
             name: 'Дипломат Олигарха',
             subtitle: 'Забыт на частном борту в Шереметьево',
             price: 850000,
             rarity: 'legendary',
-            rangeText: '280 000 – 2 600 000 ₽',
+            rangeText: '380 000 – 2 600 000 ₽',
             keyDropChance: 0.16,
             loot: [
-                { id: 'l1', name: 'Хронограф Patek Philippe', art: 'watch', price: 295000, rarity: 'epic', category: 'luxury', weight: 36 },
-                { id: 'l3', name: 'Ключи от Гелика G63 AMG', art: 'car_key', price: 540000, rarity: 'legendary', category: 'auto', weight: 26 },
+                { id: 'l1', name: 'Хронограф Patek Philippe', art: 'watch', price: 380000, rarity: 'epic', category: 'luxury', weight: 36 },
+                { id: 'l3', name: 'Ключи от Гелика G63 AMG', art: 'car_key', price: 560000, rarity: 'legendary', category: 'auto', weight: 26 },
                 { id: 'l4', name: 'Слиток Центробанка 1 кг', art: 'gold_bar', price: 840000, rarity: 'legendary', category: 'luxury', weight: 17 },
                 { id: 'l2', name: 'Чёрный ящик офшора', art: 'contraband_pack', price: 980000, rarity: 'contraband', category: 'art', isContraband: true, weight: 7 },
                 { id: 'l5', name: 'Алмаз «Сибирский рассвет»', art: 'diamond', price: 1280000, rarity: 'ultra', category: 'luxury', weight: 9 },
@@ -1464,19 +1494,18 @@
         {
             id: 'case_ultra',
             tier: 9,
-            cooldownSec: 16,
             name: 'Инкассаторский бронекейс',
             subtitle: 'Титановый спецконтейнер Гознака',
             price: 1900000,
             rarity: 'ultra',
-            rangeText: '620 000 – 5 800 000 ₽',
+            rangeText: '850 000 – 5 800 000 ₽',
             keyDropChance: 0.22,
             loot: [
-                { id: 'ul1', name: 'Облигации на предъявителя', art: 'bonds_doc', price: 650000, rarity: 'legendary', category: 'art', weight: 36 },
-                { id: 'ul2', name: 'Кейс с немаркированным евро', art: 'cash_pack', price: 1180000, rarity: 'legendary', category: 'art', weight: 26 },
+                { id: 'ul1', name: 'Облигации на предъявителя', art: 'bonds_doc', price: 850000, rarity: 'legendary', category: 'art', weight: 36 },
+                { id: 'ul2', name: 'Кейс с немаркированным евро', art: 'cash_pack', price: 1250000, rarity: 'legendary', category: 'art', weight: 26 },
                 { id: 'ul4', name: 'Прототип нейрочипа Embodied AI', art: 'neuro_chip', price: 1850000, rarity: 'ultra', category: 'tech', weight: 18 },
                 { id: 'ul3', name: 'Дипломатический груз «Диппочта»', art: 'contraband_pack', price: 2200000, rarity: 'contraband', category: 'art', isContraband: true, weight: 7 },
-                { id: 'ul5', name: 'Тубус с якутскими алмазами', art: 'diamond', price: 2800000, rarity: 'ultra', category: 'luxury', weight: 8 },
+                { id: 'ul5', name: 'Тубус с якутскими алмазами', art: 'diamond', price: 2850000, rarity: 'ultra', category: 'luxury', weight: 8 },
                 { id: 'ul6', name: 'Спутниковый терминал спецсвязи', art: 'sat_terminal', price: 3650000, rarity: 'secret', category: 'tech', weight: 5 }
             ]
         },
@@ -1484,39 +1513,37 @@
         {
             id: 'case_bunker',
             tier: 10,
-            cooldownSec: 18,
             name: 'Бункер Теневика',
             subtitle: 'Гермоконтейнер крипто-барона с Урала',
             price: 4200000,
             rarity: 'bunker',
-            rangeText: '1 400 000 – 12 500 000 ₽',
+            rangeText: '1 850 000 – 12 500 000 ₽',
             keyDropChance: 0.28,
             loot: [
-                { id: 'bk1', name: 'Золотая бородка Максима 999 пробы', art: 'maxim_beard', price: 1450000, rarity: 'legendary', category: 'luxury', weight: 36 },
-                { id: 'bk2', name: 'Квантовый браток Максим v9.0', art: 'maxim_protok', price: 2650000, rarity: 'ultra', category: 'tech', weight: 26 },
+                { id: 'bk1', name: 'Золотая бородка Максима 999 пробы', art: 'maxim_beard', price: 1850000, rarity: 'legendary', category: 'luxury', weight: 36 },
+                { id: 'bk2', name: 'Квантовый браток Максим v9.0', art: 'maxim_protok', price: 2750000, rarity: 'ultra', category: 'tech', weight: 26 },
                 { id: 'bk3', name: 'Холодное хранилище биржи (100 BTC)', art: 'crypto_drive', price: 4100000, rarity: 'bunker', category: 'tech', weight: 18 },
                 { id: 'bk4', name: 'Пломбированный контейнер «Зеро»', art: 'contraband_pack', price: 4900000, rarity: 'contraband', category: 'art', isContraband: true, weight: 7 },
-                { id: 'bk5', name: 'Реестр теневых банков Швейцарии', art: 'bonds_doc', price: 6200000, rarity: 'secret', category: 'art', weight: 8 },
+                { id: 'bk5', name: 'Реестр теневых банков Швейцарии', art: 'bonds_doc', price: 6300000, rarity: 'secret', category: 'art', weight: 8 },
                 { id: 'bk6', name: 'Личный вертолёт Airbus в ангаре', art: 'car_key', price: 8100000, rarity: 'secret', category: 'auto', weight: 5 }
             ]
         },
         {
             id: 'case_secret',
             tier: 11,
-            cooldownSec: 20,
             name: 'Архив КГБ №0',
             subtitle: 'Вскрывается за 8.5 млн ₽ или 3 Отмычками',
             price: 8500000,
             rarity: 'secret',
-            rangeText: '2 800 000 – 28 000 000 ₽',
+            rangeText: '3 800 000 – 25 000 000 ₽',
             keyDropChance: 0,
             loot: [
-                { id: 's1', name: 'Ключи от Бронированного ЗИЛа', art: 'car_key', price: 2900000, rarity: 'legendary', category: 'auto', weight: 34 },
-                { id: 's2', name: 'Кремлёвский бриллиант Фонда', art: 'diamond', price: 4900000, rarity: 'ultra', category: 'luxury', weight: 26 },
-                { id: 's3', name: 'Секретный груз «Объект-77»', art: 'contraband_pack', price: 7400000, rarity: 'contraband', category: 'art', isContraband: true, weight: 17 },
-                { id: 's4', name: 'Квантовый дешифратор «Эльбрус»', art: 'neuro_chip', price: 11500000, rarity: 'secret', category: 'tech', weight: 11 },
-                { id: 's5', name: 'Золотой запас Империи', art: 'gold_bar', price: 16800000, rarity: 'secret', category: 'luxury', weight: 8 },
-                { id: 's6', name: 'Папка «Янтарная комната»', art: 'kgb_archive', price: 24500000, rarity: 'secret', category: 'art', weight: 4 }
+                { id: 's1', name: 'Ключи от Бронированного ЗИЛа', art: 'car_key', price: 3800000, rarity: 'legendary', category: 'auto', weight: 34 },
+                { id: 's2', name: 'Кремлёвский бриллиант Фонда', art: 'diamond', price: 5900000, rarity: 'ultra', category: 'luxury', weight: 26 },
+                { id: 's3', name: 'Секретный груз «Объект-77»', art: 'contraband_pack', price: 8900000, rarity: 'contraband', category: 'art', isContraband: true, weight: 15 },
+                { id: 's4', name: 'Квантовый дешифратор «Эльбрус»', art: 'neuro_chip', price: 12800000, rarity: 'secret', category: 'tech', weight: 12 },
+                { id: 's5', name: 'Золотой запас Империи', art: 'gold_bar', price: 16500000, rarity: 'secret', category: 'luxury', weight: 8 },
+                { id: 's6', name: 'Папка «Янтарная комната»', art: 'kgb_archive', price: 21000000, rarity: 'secret', category: 'art', weight: 5 }
             ]
         }
     ];
@@ -1525,19 +1552,18 @@
     const RAID_CASE = {
         id: 'case_raid',
         tier: 5,
-        cooldownSec: 10,
         name: 'Таможенный конфискат',
         subtitle: 'Риск: от просрочки до контрабанды (лимит 5 шт.)',
         price: 55000,
         rarity: 'legendary',
-        rangeText: '18 000 – 185 000 ₽',
+        rangeText: '24 000 – 185 000 ₽',
         keyDropChance: 0.08,
         loot: [
-            { id: 'rd1', name: 'Коробка отсыревших сигарет', art: 'cigs_box', price: 18500, rarity: 'common', category: 'art', weight: 32 },
-            { id: 'rd2', name: 'Разбитый монитор с пошлиной', art: 'smartphone', price: 27000, rarity: 'uncommon', category: 'tech', weight: 26 },
-            { id: 'rd3', name: 'Паллета китайских кроссовок', art: 'sneakers_box', price: 39000, rarity: 'yard', category: 'art', weight: 18 },
-            { id: 'rd4', name: 'Конфискованная бородка Максима', art: 'maxim_beard', price: 58000, rarity: 'rare', category: 'luxury', weight: 11 },
-            { id: 'rd5', name: 'Таможенный пломбир (Свёрток)', art: 'contraband_pack', price: 72000, rarity: 'contraband', category: 'art', isContraband: true, weight: 6 },
+            { id: 'rd1', name: 'Коробка отсыревших сигарет', art: 'cigs_box', price: 24500, rarity: 'common', category: 'art', weight: 32 },
+            { id: 'rd2', name: 'Разбитый монитор с пошлиной', art: 'smartphone', price: 31000, rarity: 'uncommon', category: 'tech', weight: 26 },
+            { id: 'rd3', name: 'Паллета китайских кроссовок', art: 'sneakers_box', price: 42000, rarity: 'yard', category: 'art', weight: 18 },
+            { id: 'rd4', name: 'Конфискованная бородка Максима', art: 'maxim_beard', price: 62000, rarity: 'rare', category: 'luxury', weight: 11 },
+            { id: 'rd5', name: 'Таможенный пломбир (Свёрток)', art: 'contraband_pack', price: 78000, rarity: 'contraband', category: 'art', isContraband: true, weight: 6 },
             { id: 'rd6', name: 'Асик Antminer S21 без документов', art: 'gpu_rig', price: 98000, rarity: 'epic', category: 'tech', weight: 5 },
             { id: 'rd7', name: 'Контрабандный Ролекс в кейсе', art: 'watch', price: 140000, rarity: 'legendary', category: 'luxury', weight: 2 }
         ]
@@ -1567,7 +1593,6 @@
         stamina: 100,
         scrapReadyAt: 0,
         freeCaseReadyAt: 0,
-        caseCooldownUntil: 0,
         pityCounter: 0,
         referrals: 0,
         godMode: false,
@@ -1606,7 +1631,6 @@
                 if (!state.playerName) state.playerName = defaultPlayerName;
                 if (state.raidBoxesLeft > 5) state.raidBoxesLeft = 5;
                 if (typeof state.pityCounter !== 'number') state.pityCounter = 0;
-                if (typeof state.caseCooldownUntil !== 'number') state.caseCooldownUntil = 0;
             } else {
                 generateNewMarketRates();
             }
@@ -1868,11 +1892,39 @@
     }
 
     /********************************************************************
-     * 7. ОТСТОЙНИК (11 ЧЕМОДАНОВ), ПЕРЕЗАРЯДКА, PITY-ФАРТ И ВЗЛОМ ЗАМКА
+     * 7. ОТСТОЙНИК (11 ЧЕМОДАНОВ), АШОТОВСКИЙ КЭШБЭК ЗА ОПТ, PITY-ФАРТ И ВЗЛОМ ЗАМКА
      ********************************************************************/
     let activeCase = null;
     let isSpinning = false;
     let lastWonItem = null;
+    let lastMultiWonItems = [];
+    let selectedPackSize = 1;
+
+    const PACK_DISCOUNTS = {
+        1: 0,
+        3: 0.03,
+        5: 0.06,
+        10: 0.10
+    };
+
+    function getPackTotalPrice(caseObj, packSize) {
+        if (!caseObj) return 0;
+        const disc = PACK_DISCOUNTS[packSize] || 0;
+        return Math.round(caseObj.price * packSize * (1 - disc));
+    }
+
+    function setCasePackSize(size) {
+        if (isSpinning || !activeCase) return;
+        if (activeCase.id === 'case_raid') {
+            if (size > state.raidBoxesLeft) {
+                showToast(`На таможне осталось всего ${state.raidBoxesLeft} ящ.!`, 'info');
+                size = Math.max(1, state.raidBoxesLeft >= 3 ? 3 : 1);
+            }
+        }
+        selectedPackSize = size;
+        triggerHaptic('light');
+        updateModalOpenButtonState();
+    }
 
     function renderCasesShop() {
         document.getElementById('raid-case-svg-holder').innerHTML = getCaseSVG('case_raid');
@@ -1888,7 +1940,7 @@
                         <span class="text-[9px] font-mono-tech font-extrabold uppercase px-1.5 py-0.5 rounded ${r.badge} text-white">
                             ${r.name}
                         </span>
-                        <span class="text-[9px] font-mono-tech text-slate-400">⏱ ${c.cooldownSec}с</span>
+                        ${c.keyDropChance > 0 ? `<span class="text-[10px] font-mono-tech text-amber-300 font-bold" title="Шанс выбить отмычку">🔑 ${Math.round(c.keyDropChance*100)}%</span>` : `<span class="text-[9px] font-mono-tech text-amber-400 font-bold">ОПТ -10%</span>`}
                     </div>
 
                     <div class="my-2.5 flex flex-col items-center text-center">
@@ -1926,17 +1978,19 @@
         activeCase = caseId === 'case_raid' ? RAID_CASE : CASES.find(c => c.id === caseId);
         if (!activeCase) return;
 
+        selectedPackSize = 1;
         triggerHaptic('light');
         document.getElementById('modal-case-icon').innerHTML = getCaseSVG(activeCase.id);
         document.getElementById('modal-big-svg').innerHTML = getCaseSVG(activeCase.id);
         document.getElementById('modal-case-title').textContent = activeCase.name;
-        document.getElementById('modal-case-range').textContent = `Разброс: ${activeCase.rangeText} • Остывание: ${activeCase.cooldownSec}с`;
+        document.getElementById('modal-case-range').textContent = `Разброс оценки: ${activeCase.rangeText}`;
         document.getElementById('pity-status-pill').textContent = `Фарт: ${state.pityCounter}/5`;
 
         document.getElementById('case-showcase').classList.remove('hidden');
         document.getElementById('lockpick-game-wrapper').classList.add('hidden');
         document.getElementById('roulette-wrapper').classList.add('hidden');
         document.getElementById('won-item-card').classList.add('hidden');
+        document.getElementById('multi-won-wrapper').classList.add('hidden');
         document.getElementById('case-open-controls').classList.remove('hidden');
 
         updateModalOpenButtonState();
@@ -1974,15 +2028,37 @@
     function updateModalOpenButtonState() {
         const btn = document.getElementById('open-case-btn');
         if (!btn || !activeCase) return;
-        const leftMs = state.caseCooldownUntil - Date.now();
-        if (leftMs > 0) {
-            const sec = Math.ceil(leftMs / 1000);
-            btn.textContent = `Остывание замка: ${sec} сек. (Сбей в Халтурке!)`;
-            btn.classList.add('opacity-50');
-        } else {
-            btn.textContent = `Вскрыть монтировкой за ${formatMoney(activeCase.price)}`;
-            btn.classList.remove('opacity-50');
+
+        if (activeCase.id === 'case_raid' && selectedPackSize > state.raidBoxesLeft) {
+            selectedPackSize = 1;
         }
+
+        const disc = PACK_DISCOUNTS[selectedPackSize] || 0;
+        const discPct = Math.round(disc * 100);
+        const totalCost = getPackTotalPrice(activeCase, selectedPackSize);
+        const savedRub = (activeCase.price * selectedPackSize) - totalCost;
+
+        const discLabel = document.getElementById('pack-discount-label');
+        if (discLabel) {
+            discLabel.textContent = discPct > 0
+                ? `Выгода -${discPct}% (${formatMoney(savedRub)})`
+                : 'Без скидки (розница)';
+        }
+
+        document.querySelectorAll('.pack-size-btn').forEach(b => {
+            const p = parseInt(b.dataset.pack, 10);
+            const isRaidLocked = activeCase.id === 'case_raid' && p > state.raidBoxesLeft;
+            b.disabled = isRaidLocked;
+            if (p === selectedPackSize) {
+                b.className = 'pack-size-btn py-1.5 rounded-lg text-xs font-extrabold border border-amber-500 bg-amber-500/20 text-white btn-active';
+            } else {
+                b.className = `pack-size-btn py-1.5 rounded-lg text-xs font-extrabold border border-[#2c333a] bg-[#14171a] text-slate-300 btn-active ${isRaidLocked ? 'opacity-35' : ''}`;
+            }
+        });
+
+        btn.textContent = discPct > 0
+            ? `Вскрыть ${selectedPackSize} шт. за ${formatMoney(totalCost)} (-${discPct}%)`
+            : `Вскрыть 1 шт. за ${formatMoney(totalCost)}`;
     }
 
     function closeCaseModal() {
@@ -2010,20 +2086,20 @@
         if (state.godMode) {
             baseItem = caseObj.loot[caseObj.loot.length - 1];
         } else if (applyPity && state.pityCounter >= 5) {
-            // Сработал Гарант Фарта: выбираем только окупаемые лоты (верхняя половина списка)
-            const profitablePool = caseObj.loot.filter(i => i.price >= caseObj.price * 0.95);
+            // Сработал Гарант Фарта: выбираем гарантированно окупаемый лот (от x1.5 цены кейса)
+            const profitablePool = caseObj.loot.filter(i => i.price >= caseObj.price * 1.45);
             const pool = profitablePool.length > 0 ? profitablePool : caseObj.loot.slice(-2);
             baseItem = pool[Math.floor(Math.random() * pool.length)];
         } else {
-            // На высоких тирах (tier >= 5) вес дорогих вещей чуть строже, чтобы прогресс в мид/лейтгейме был азартнее и сложнее
+            // На высоких тирах (tier >= 5) вес дорогих вещей чуть строже для азартного мид/лейтгейма
             const isHardTier = (caseObj.tier || 1) >= 5;
             const adjustedLoot = caseObj.loot.map(item => {
                 let w = item.weight;
                 if (isHardTier && item.price > caseObj.price) {
-                    w = w * 0.78; // Усложнение окупа на высоких рангах
+                    w = w * 0.78;
                 }
                 if (applyPity && state.pityCounter >= 3 && item.price >= caseObj.price) {
-                    w = w * 1.25; // Легкий буст при 3 минусах подряд
+                    w = w * 1.25;
                 }
                 return { item, w };
             });
@@ -2121,15 +2197,6 @@
     function startCaseOpening(useKeys = false) {
         if (isSpinning || !activeCase) return;
 
-        // Проверка перезарядки чемоданов
-        const now = Date.now();
-        if (now < state.caseCooldownUntil) {
-            const waitSec = Math.ceil((state.caseCooldownUntil - now) / 1000);
-            playSound('clank');
-            showToast(`Замок остывает ещё ${waitSec} сек.! Потаскай мешки в Халтурке, чтобы сбить таймер.`, 'error');
-            return;
-        }
-
         if (activeCase.id === 'case_raid') {
             if (state.raidBoxesLeft <= 0) {
                 showToast('Конфискат закончился!', 'error');
@@ -2143,26 +2210,169 @@
                 return;
             }
             state.secretKeys -= 3;
-            state.caseCooldownUntil = Date.now() + (activeCase.cooldownSec || 10) * 1000;
+            selectedPackSize = 1;
             updateHeaderUI();
             startLockpickMiniGame();
             return;
         } else {
-            if (state.balance < activeCase.price) {
-                playSound('siren');
-                triggerHaptic('error');
-                showToast('На счету пусто! Сдай товар Ашоту или иди в Халтурку.', 'error');
+            const count = selectedPackSize || 1;
+            if (activeCase.id === 'case_raid' && count > state.raidBoxesLeft) {
+                showToast(`На складе осталось только ${state.raidBoxesLeft} ящ.!`, 'error');
                 return;
             }
-            state.balance -= activeCase.price;
-            state.caseCooldownUntil = Date.now() + (activeCase.cooldownSec || 8) * 1000;
+            const totalCost = getPackTotalPrice(activeCase, count);
+            if (state.balance < totalCost) {
+                playSound('siren');
+                triggerHaptic('error');
+                showToast(`Не хватает наличных! Нужно ${formatMoney(totalCost)}.`, 'error');
+                return;
+            }
+            state.balance -= totalCost;
             if (activeCase.id === 'case_raid') {
-                state.raidBoxesLeft -= 1;
+                state.raidBoxesLeft -= count;
                 updateRaidBannerUI();
             }
             updateHeaderUI();
-            proceedCaseSpin();
+            if (count > 1) {
+                proceedMultiCaseSpin(count);
+            } else {
+                proceedCaseSpin();
+            }
         }
+    }
+
+    function proceedMultiCaseSpin(count) {
+        state.stats.casesOpened += count;
+        const wonBatch = [];
+        let keysFound = 0;
+        let pityTriggered = false;
+
+        for (let i = 0; i < count; i++) {
+            const item = rollItemFromCase(activeCase, true);
+            item.uid = Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 6);
+            const val = Math.round(item.price * (item.floatMult || 1));
+
+            if (val < activeCase.price) {
+                state.pityCounter = Math.min(5, (state.pityCounter || 0) + 1);
+            } else {
+                if (state.pityCounter >= 5) pityTriggered = true;
+                state.pityCounter = 0;
+            }
+
+            if (val > state.stats.bestDrop) {
+                state.stats.bestDrop = val;
+            }
+
+            if (activeCase.keyDropChance > 0 && (state.godMode || Math.random() < activeCase.keyDropChance)) {
+                state.secretKeys += 1;
+                keysFound += 1;
+            }
+
+            wonBatch.push(item);
+        }
+
+        if (pityTriggered) {
+            showToast('В пачке сработал Гарант Фарта!', 'success');
+        }
+
+        lastMultiWonItems = wonBatch;
+        // Кладём все выбитые предметы в начало багажника
+        state.inventory.unshift(...wonBatch);
+        updateHeaderUI();
+        renderInventory();
+        updateModalOpenButtonState();
+
+        // Транслируем самый дорогой предмет из пачки в эфир Firebase, если он >= 15 000 ₽
+        const bestInBatch = [...wonBatch].sort((a, b) => (b.price * b.floatMult) - (a.price * a.floatMult))[0];
+        if (bestInBatch) {
+            const bestVal = Math.round(bestInBatch.price * (bestInBatch.floatMult || 1));
+            if (bestVal >= 15000 && window.publishDropToFirestore) {
+                const myName = state.playerName || defaultPlayerName;
+                const feedMsg = `${myName} вскрыл пачку «${activeCase.name}» (${count} шт.) → ${bestInBatch.name} (${bestInBatch.floatName}) за ${formatMoney(bestVal)}`;
+                window.publishDropToFirestore(feedMsg);
+            }
+        }
+
+        const hasTop = wonBatch.some(it => ['legendary', 'ultra', 'bunker', 'secret', 'contraband'].includes(it.rarity));
+        if (hasTop) {
+            playSound('jackpot');
+            triggerHaptic('success');
+        } else {
+            playSound('win');
+            triggerHaptic('medium');
+        }
+
+        document.getElementById('case-showcase').classList.add('hidden');
+        document.getElementById('roulette-wrapper').classList.add('hidden');
+        document.getElementById('won-item-card').classList.add('hidden');
+        document.getElementById('case-open-controls').classList.remove('hidden');
+
+        const multiWrap = document.getElementById('multi-won-wrapper');
+        multiWrap.classList.remove('hidden');
+
+        const totalEval = wonBatch.reduce((acc, it) => acc + Math.round(it.price * (it.floatMult || 1)), 0);
+        const totalSellNow = wonBatch.reduce((acc, it) => acc + getItemSellPrice(it), 0);
+
+        document.getElementById('multi-won-title').textContent = `Улов из пачки (${count} шт.)`;
+        document.getElementById('multi-won-total').textContent = `Оценка: ${formatMoney(totalEval)}`;
+
+        const keyBanner = document.getElementById('multi-won-keys-banner');
+        if (keysFound > 0) {
+            keyBanner.textContent = `+ НАЙДЕНО ОТМЫЧЕК КГБ: ${keysFound} ШТ.!`;
+            keyBanner.classList.remove('hidden');
+        } else {
+            keyBanner.classList.add('hidden');
+        }
+
+        document.getElementById('multi-won-grid').innerHTML = wonBatch.map(it => {
+            const r = RARITIES[it.rarity] || RARITIES.common;
+            const val = Math.round(it.price * (it.floatMult || 1));
+            return `
+                <div class="${r.css} border rounded-lg p-2 text-center flex flex-col justify-between">
+                    <span class="text-[8px] font-mono-tech uppercase px-1 rounded bg-black/50 text-slate-300 truncate">${it.floatName}</span>
+                    <div class="w-10 h-10 mx-auto my-1">${getItemSVG(it.art)}</div>
+                    <div class="text-[10px] font-bold text-white leading-tight line-clamp-1">${it.name}</div>
+                    <div class="text-[10px] font-mono-tech font-extrabold text-emerald-400 mt-0.5">${formatMoney(val)}</div>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('sell-multi-won-btn').textContent = `Слить всё за ${formatMoney(totalSellNow)}`;
+    }
+
+    function keepMultiWonItems() {
+        showToast(`Все предметы (${lastMultiWonItems.length} шт.) оставлены в багажнике!`, 'info');
+        lastMultiWonItems = [];
+        closeCaseModal();
+    }
+
+    function sellMultiWonItemsNow() {
+        if (!lastMultiWonItems || lastMultiWonItems.length === 0) return;
+        const batchUids = new Set(lastMultiWonItems.map(i => i.uid));
+        let earned = 0;
+        let soldCount = 0;
+
+        state.inventory = state.inventory.filter(item => {
+            if (batchUids.has(item.uid)) {
+                earned += getItemSellPrice(item);
+                soldCount += 1;
+                return false;
+            }
+            return true;
+        });
+
+        if (soldCount > 0) {
+            state.balance += earned;
+            playSound('coin');
+            triggerHaptic('success');
+            showToast(`Пачка (${soldCount} шт.) слита за ${formatMoney(earned)}!`, 'success');
+        }
+
+        lastMultiWonItems = [];
+        updateHeaderUI();
+        renderInventory();
+        document.getElementById('multi-won-wrapper').classList.add('hidden');
+        document.getElementById('case-showcase').classList.remove('hidden');
     }
 
     function proceedCaseSpin() {
@@ -2200,6 +2410,7 @@
         document.getElementById('case-showcase').classList.add('hidden');
         document.getElementById('case-open-controls').classList.add('hidden');
         document.getElementById('won-item-card').classList.add('hidden');
+        document.getElementById('multi-won-wrapper').classList.add('hidden');
 
         const wrapper = document.getElementById('roulette-wrapper');
         const track = document.getElementById('roulette-track');
@@ -2284,6 +2495,7 @@
 
         document.getElementById('case-showcase').classList.add('hidden');
         document.getElementById('roulette-wrapper').classList.add('hidden');
+        document.getElementById('multi-won-wrapper').classList.add('hidden');
         document.getElementById('case-open-controls').classList.remove('hidden');
 
         const card = document.getElementById('won-item-card');
@@ -2858,7 +3070,7 @@
     }
 
     /********************************************************************
-     * 10. ХАЛТУРКА (ЭНЕРГИЯ + СБИТИЕ ПЕРЕЗАРЯДКИ КЕЙСОВ), ЦВЕТМЕТ И РЕФЕРАЛКА
+     * 10. ХАЛТУРКА (ЭНЕРГИЯ), ЦВЕТМЕТ И РЕФЕРАЛКА
      ********************************************************************/
     function doSideHustle(e) {
         if (state.stamina < 2) {
@@ -2871,28 +3083,16 @@
         const reward = league.clickBonus;
         state.balance += reward;
 
-        // Каждый тап срезает 1.5 секунды с перезарядки чемодана и ящика с перрона!
-        const now = Date.now();
-        let shaved = false;
-        if (state.caseCooldownUntil > now) {
-            state.caseCooldownUntil = Math.max(now, state.caseCooldownUntil - 1500);
-            shaved = true;
-        }
-        if (state.freeCaseReadyAt > now) {
-            state.freeCaseReadyAt = Math.max(now, state.freeCaseReadyAt - 1500);
-        }
-
         playSound('tick');
         triggerHaptic('light');
         updateHeaderUI();
-        updateTimers();
 
         const el = document.createElement('div');
-        el.className = 'float-money text-xs';
-        el.textContent = shaved ? `+${reward} ₽ (-1.5с)` : `+${reward} ₽`;
+        el.className = 'float-money text-sm';
+        el.textContent = `+${reward} ₽`;
         const x = e.clientX || (window.innerWidth / 2);
         const y = e.clientY || (window.innerHeight / 2);
-        el.style.left = `${x - 28}px`;
+        el.style.left = `${x - 24}px`;
         el.style.top = `${y - 20}px`;
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 850);
@@ -3086,7 +3286,6 @@
             stamina: 100,
             scrapReadyAt: 0,
             freeCaseReadyAt: 0,
-            caseCooldownUntil: 0,
             pityCounter: 0,
             referrals: state.referrals || 0,
             godMode: false,
@@ -3230,18 +3429,6 @@
             document.getElementById('stamina-current').textContent = state.stamina;
             document.getElementById('stamina-bar').style.width = `${state.stamina}%`;
         }
-
-        // Индикатор глобальной перезарядки замков в шапке и модалке
-        const cdBadge = document.getElementById('global-cd-badge');
-        if (now < state.caseCooldownUntil) {
-            const waitCd = Math.ceil((state.caseCooldownUntil - now) / 1000);
-            cdBadge.textContent = `${waitCd} СЕК.`;
-            cdBadge.className = 'font-extrabold text-amber-400';
-        } else {
-            cdBadge.textContent = 'ГОТОВ';
-            cdBadge.className = 'font-extrabold text-emerald-400';
-        }
-        updateModalOpenButtonState();
 
         // Таймер скупщика Ашота
         let marketLeft = Math.max(0, Math.floor((state.marketNextUpdate - now) / 1000));
