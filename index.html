@@ -6,6 +6,9 @@
     <title>ОТСТОЙНИК: Охота за лутом — Telegram Mini App</title>
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Firebase App & Realtime Database SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome Icons -->
@@ -73,9 +76,11 @@
         .rarity-yard { border-color: #84cc16; background: linear-gradient(160deg, #16191d 0%, #1a2e05 100%); }
         .rarity-rare { border-color: #38bdf8; background: linear-gradient(160deg, #16191d 0%, #0c2a40 100%); }
         .rarity-criminal { border-color: #f97316; background: linear-gradient(160deg, #16191d 0%, #3b1806 100%); }
+        .rarity-syndicate { border-color: #14b8a6; background: linear-gradient(160deg, #16191d 0%, #042f2e 100%); }
         .rarity-epic { border-color: #c084fc; background: linear-gradient(160deg, #16191d 0%, #2e1446 100%); }
         .rarity-legendary { border-color: #f59e0b; background: linear-gradient(160deg, #16191d 0%, #422506 100%); }
         .rarity-ultra { border-color: #ec4899; background: linear-gradient(160deg, #16191d 0%, #450a26 100%); }
+        .rarity-bunker { border-color: #a855f7; background: linear-gradient(160deg, #140d1f 0%, #3b0764 100%); }
         .rarity-secret { border-color: #ef4444; background: linear-gradient(160deg, #1a1113 0%, #470d0d 100%); }
         .rarity-contraband { border-color: #e11d48; background: repeating-linear-gradient(45deg, #1a0f14, #1a0f14 10px, #2c0b16 10px, #2c0b16 20px); }
 
@@ -84,9 +89,11 @@
         .glow-yard { box-shadow: inset 0 0 15px rgba(132, 204, 22, 0.22); }
         .glow-rare { box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.25); }
         .glow-criminal { box-shadow: inset 0 0 18px rgba(249, 115, 22, 0.28); }
+        .glow-syndicate { box-shadow: inset 0 0 18px rgba(20, 184, 166, 0.3); }
         .glow-epic { box-shadow: inset 0 0 18px rgba(192, 132, 252, 0.3); }
         .glow-legendary { box-shadow: 0 4px 24px -4px rgba(245, 158, 11, 0.35), inset 0 0 18px rgba(245, 158, 11, 0.25); }
         .glow-ultra { box-shadow: 0 4px 24px -4px rgba(236, 72, 153, 0.4), inset 0 0 20px rgba(236, 72, 153, 0.3); }
+        .glow-bunker { box-shadow: 0 4px 25px -4px rgba(168, 85, 247, 0.45), inset 0 0 20px rgba(168, 85, 247, 0.3); }
         .glow-secret { box-shadow: 0 0 25px rgba(239, 68, 68, 0.45), inset 0 0 20px rgba(239, 68, 68, 0.3); animation: pulse-danger 2.2s infinite; }
 
         @keyframes pulse-danger {
@@ -199,12 +206,14 @@
 <body>
 
 <div class="app-container">
-    <!-- БЕГУЩАЯ СТРОКА LIVE-УЛОВА (LIVE DROP FEED) -->
+    <!-- БЕГУЩАЯ СТРОКА РЕАЛЬНОГО LIVE-УЛОВА ИЗ FIREBASE -->
     <div class="bg-[#08090a] border-b border-[#22272e] px-3 py-1 flex items-center justify-between text-[11px] font-mono-tech">
         <div class="flex items-center space-x-2 overflow-hidden">
-            <span class="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 font-bold rounded text-[9px] shrink-0 uppercase border border-amber-500/30">Эфир</span>
+            <span class="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 font-bold rounded text-[9px] shrink-0 uppercase border border-amber-500/30 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Эфир
+            </span>
             <div id="live-drop-ticker" class="text-slate-300 truncate">
-                @serega_granta вскрыл «Сейф инкассатора» → Золотой Ролекс (В плёнке)
+                Ожидание крупного улова от игроков в сети...
             </div>
         </div>
         <button onclick="openAdminAuth()" class="text-slate-600 hover:text-amber-400 pl-2 shrink-0" title="Служебный вход">
@@ -250,14 +259,20 @@
             </div>
         </div>
 
-        <!-- Индикатор курса у Ашота (Живой рынок) -->
-        <div onclick="switchTab('inventory')" class="mt-2 bg-[#0b0d0e] rounded-md px-2.5 py-1.5 flex items-center justify-between text-xs border border-[#252b31] cursor-pointer hover:border-amber-500/50 transition">
-            <div class="flex items-center space-x-2 overflow-hidden">
-                <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                <span class="text-slate-400 font-mono-tech text-[11px] shrink-0">СКУПКА АШОТА:</span>
-                <span id="market-ticker" class="font-bold text-amber-400 text-[11px] truncate font-mono-tech">Загрузка котировок...</span>
+        <!-- Индикатор курса у Ашота (Живой рынок) + Статус кулдауна -->
+        <div class="mt-2 grid grid-cols-12 gap-1.5">
+            <div onclick="switchTab('inventory')" class="col-span-8 bg-[#0b0d0e] rounded-md px-2.5 py-1.5 flex items-center justify-between text-xs border border-[#252b31] cursor-pointer hover:border-amber-500/50 transition">
+                <div class="flex items-center space-x-1.5 overflow-hidden">
+                    <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                    <span class="text-slate-400 font-mono-tech text-[10px] shrink-0">АШОТ:</span>
+                    <span id="market-ticker" class="font-bold text-amber-400 text-[10px] truncate font-mono-tech">Загрузка...</span>
+                </div>
+                <span id="market-timer" class="text-[10px] text-slate-400 font-mono-tech ml-1 shrink-0">02:00</span>
             </div>
-            <span id="market-timer" class="text-[11px] text-slate-400 font-mono-tech ml-2 shrink-0">02:00</span>
+            <div onclick="switchTab('work')" class="col-span-4 bg-[#0b0d0e] rounded-md px-2 py-1.5 flex items-center justify-between text-[10px] font-mono-tech border border-[#252b31] cursor-pointer hover:border-amber-500/50" title="Тапай мешки в Халтурке, чтобы сбивать перезарядку!">
+                <span class="text-slate-400">ЗАМОК:</span>
+                <span id="global-cd-badge" class="font-extrabold text-emerald-400">ГОТОВ</span>
+            </div>
         </div>
 
         <!-- СРОЧНЫЙ ВЫЗОВ ОТ МИХАЛЫЧА (Появляется по таймеру) -->
@@ -290,9 +305,9 @@
     <!-- ОСНОВНОЙ КОНТЕНТ ВКЛАДОК -->
     <main class="flex-1 p-3 space-y-3.5">
 
-        <!-- ВКЛАДКА 1: ОТСТОЙНИК (ЧЕМОДАНЫ И ТАМОЖЕННЫЙ РЕЙД) -->
+        <!-- ВКЛАДКА 1: ОТСТОЙНИК (11 ЧЕМОДАНОВ И ТАМОЖЕННЫЙ РЕЙД) -->
         <section id="tab-cases" class="space-y-3.5">
-            <!-- Блок события: РЕЙД НА ТАМОЖЕННЫЙ СКЛАД (Занёрфленный: 45 000 ₽, лимит 5 ящиков) -->
+            <!-- Блок события: РЕЙД НА ТАМОЖЕННЫЙ СКЛАД -->
             <div id="raid-banner" class="rounded-xl border-2 border-amber-500/70 bg-[#14171a] overflow-hidden shadow-lg">
                 <div class="hazard-stripe h-2 w-full"></div>
                 <div class="p-3 flex items-center justify-between">
@@ -309,7 +324,7 @@
                         </p>
                         <div class="pt-1">
                             <button onclick="openRaidCase()" id="raid-open-btn" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono-tech font-black text-xs uppercase btn-active shadow">
-                                Вскрыть конфискат (45 000 ₽)
+                                Вскрыть конфискат (55 000 ₽)
                             </button>
                         </div>
                     </div>
@@ -319,13 +334,13 @@
                 </div>
             </div>
 
-            <!-- Сетка из 9 основных чемоданов -->
+            <!-- Сетка из 11 основных чемоданов -->
             <div id="cases-grid" class="grid grid-cols-2 gap-2.5">
                 <!-- Заполняется через JS с кастомными SVG -->
             </div>
         </section>
 
-        <!-- ВКЛАДКА 2: БАГАЖНИК (ИНВЕНТАРЬ, АШОТ И DARKNET) -->
+        <!-- ВКЛАДКА 2: БАГАЖНИК (ИНВЕНТАРЬ, АШОТ, ОПТОВИК И DARKNET РАДАР) -->
         <section id="tab-inventory" class="hidden space-y-3">
             <!-- Панель Скупщика Ашота -->
             <div class="bg-[#14171a] rounded-xl p-3 border border-[#2c333a] space-y-2.5">
@@ -355,15 +370,27 @@
                 </div>
             </div>
 
-            <!-- Панель оценки и быстрой сдачи -->
-            <div class="flex items-center justify-between bg-[#14171a] p-3 rounded-xl border border-[#2c333a]">
-                <div class="space-y-0.5">
-                    <div class="text-xs text-slate-400">В багажнике: <span id="inv-count" class="text-white font-mono-tech font-bold">0</span> шт.</div>
-                    <div class="text-xs text-slate-400">Оценка легала: <span id="inv-total-value" class="text-emerald-400 font-mono-tech font-bold">0 ₽</span></div>
+            <!-- Панель оценки, быстрой сдачи и ОПТОВОЙ ГАЗЕЛИ -->
+            <div class="bg-[#14171a] p-3 rounded-xl border border-[#2c333a] space-y-2">
+                <div class="flex items-center justify-between">
+                    <div class="space-y-0.5">
+                        <div class="text-xs text-slate-400">В багажнике: <span id="inv-count" class="text-white font-mono-tech font-bold">0</span> шт.</div>
+                        <div class="text-xs text-slate-400">Оценка легала: <span id="inv-total-value" class="text-emerald-400 font-mono-tech font-bold">0 ₽</span></div>
+                    </div>
+                    <button onclick="sellAllItems()" id="sell-all-btn" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono-tech font-bold text-xs uppercase shadow btn-active">
+                        Сдать весь легал
+                    </button>
                 </div>
-                <button onclick="sellAllItems()" id="sell-all-btn" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono-tech font-bold text-xs uppercase shadow btn-active">
-                    Сдать легал
-                </button>
+                <!-- Новая фишка: Оптовик на Газели (+25% за пачку из 3 ширпотребных вещей) -->
+                <div class="pt-2 border-t border-[#22272e] flex items-center justify-between">
+                    <div class="text-[11px] text-slate-300">
+                        <i class="fa-solid fa-truck-pickup text-amber-400 mr-1"></i>
+                        <b>Барыга на Газели:</b> пачка 3 ширпотреба с наценкой <span class="text-amber-400 font-mono-tech font-bold">+25%</span>
+                    </div>
+                    <button onclick="sellWholesaleBundle()" class="px-2.5 py-1 rounded bg-amber-500/20 border border-amber-500/50 text-amber-300 font-mono-tech font-bold text-[10px] uppercase btn-active shrink-0">
+                        Сдать 3 шт.
+                    </button>
+                </div>
             </div>
 
             <!-- Фильтр по редкости и контрабанде -->
@@ -397,19 +424,19 @@
                 <div class="bg-[#14171a] rounded-xl p-4 border border-[#2c333a] text-center space-y-3.5">
                     <div class="relative w-48 h-48 mx-auto">
                         <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-20 text-xl text-amber-400 drop-shadow">▼</div>
-                        <div id="upgrade-wheel" class="w-full h-full rounded-full border-4 border-[#2c333a] flex items-center justify-center relative transition-transform duration-[2400ms] ease-[cubic-bezier(0.12,0.8,0.18,1)]" style="background: conic-gradient(#10b981 0% 60%, #1b2024 60% 100%);">
+                        <div id="upgrade-wheel" class="w-full h-full rounded-full border-4 border-[#2c333a] flex items-center justify-center relative transition-transform duration-[2400ms] ease-[cubic-bezier(0.12,0.8,0.18,1)]" style="background: conic-gradient(#10b981 0% 55%, #1b2024 55% 100%);">
                             <div class="w-32 h-32 rounded-full bg-[#0b0d0e] flex flex-col items-center justify-center border-2 border-[#2c333a] shadow-inner">
-                                <span id="upgrade-chance-text" class="text-2xl font-mono-tech font-black text-emerald-400">60%</span>
+                                <span id="upgrade-chance-text" class="text-2xl font-mono-tech font-black text-emerald-400">55%</span>
                                 <span class="text-[10px] font-mono-tech text-slate-400 uppercase">Шанс передела</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-4 gap-2 font-mono-tech">
-                        <button onclick="setUpgradeMultiplier(1.5)" data-mult="1.5" class="mult-btn py-2 rounded-lg text-xs font-extrabold border border-amber-500 bg-amber-500/20 text-white">x1.5 <span class="block text-[9px] text-slate-400">60%</span></button>
-                        <button onclick="setUpgradeMultiplier(2)" data-mult="2" class="mult-btn py-2 rounded-lg text-xs font-extrabold border border-[#2c333a] bg-[#0b0d0e] text-slate-300">x2.0 <span class="block text-[9px] text-slate-400">45%</span></button>
-                        <button onclick="setUpgradeMultiplier(5)" data-mult="5" class="mult-btn py-2 rounded-lg text-xs font-extrabold border border-[#2c333a] bg-[#0b0d0e] text-slate-300">x5.0 <span class="block text-[9px] text-slate-400">18%</span></button>
-                        <button onclick="setUpgradeMultiplier(10)" data-mult="10" class="mult-btn py-2 rounded-lg text-xs font-extrabold border border-[#2c333a] bg-[#0b0d0e] text-slate-300">x10 <span class="block text-[9px] text-slate-400">9%</span></button>
+                        <button onclick="setUpgradeMultiplier(1.5)" data-mult="1.5" class="mult-btn py-2 rounded-lg text-xs font-extrabold border border-amber-500 bg-amber-500/20 text-white">x1.5 <span class="block text-[9px] text-slate-400">55%</span></button>
+                        <button onclick="setUpgradeMultiplier(2)" data-mult="2" class="mult-btn py-2 rounded-lg text-xs font-extrabold border border-[#2c333a] bg-[#0b0d0e] text-slate-300">x2.0 <span class="block text-[9px] text-slate-400">40%</span></button>
+                        <button onclick="setUpgradeMultiplier(5)" data-mult="5" class="mult-btn py-2 rounded-lg text-xs font-extrabold border border-[#2c333a] bg-[#0b0d0e] text-slate-300">x5.0 <span class="block text-[9px] text-slate-400">15%</span></button>
+                        <button onclick="setUpgradeMultiplier(10)" data-mult="10" class="mult-btn py-2 rounded-lg text-xs font-extrabold border border-[#2c333a] bg-[#0b0d0e] text-slate-300">x10 <span class="block text-[9px] text-slate-400">7%</span></button>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2.5 items-center">
@@ -436,7 +463,7 @@
                     <div class="flex justify-between items-center">
                         <div>
                             <h3 class="text-sm font-black text-white uppercase">Контракт барыг</h3>
-                            <p class="text-[11px] text-slate-400">Сдай 3–5 вещей → получи 1 вещь (от 70% до 175% суммы)</p>
+                            <p class="text-[11px] text-slate-400">Сдай 3–5 вещей → получи 1 вещь (от 65% до 160% суммы)</p>
                         </div>
                         <span id="contract-slots-counter" class="px-2 py-1 rounded bg-amber-500/20 text-amber-400 font-mono-tech font-bold text-xs">0 / 5</span>
                     </div>
@@ -458,14 +485,14 @@
             </div>
         </section>
 
-        <!-- ВКЛАДКА 4: ХАЛТУРКА (ОСЛАБЛЕННЫЙ ТАП С ЭНЕРГИЕЙ, ВОКЗАЛ, РЕФЕРАЛКА) -->
+        <!-- ВКЛАДКА 4: ХАЛТУРКА (ТАП С ЭНЕРГИЕЙ И СБИТИЕМ КУЛДАУНА, ВОКЗАЛ, РЕФЕРАЛКА) -->
         <section id="tab-work" class="hidden space-y-3.5">
-            <!-- Бесплатный чемодан с вокзала (Оставлен как просил пользователь) -->
+            <!-- Бесплатный чемодан с вокзала (120 секунд кулдаун) -->
             <div class="bg-[#14171a] rounded-xl p-3.5 border border-amber-500/40 flex items-center justify-between shadow">
                 <div class="space-y-1 pr-2">
-                    <span class="text-[10px] font-mono-tech px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold uppercase">Раз в 60 секунд</span>
+                    <span class="text-[10px] font-mono-tech px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold uppercase">Раз в 120 секунд</span>
                     <h3 class="text-sm font-black text-white uppercase">Забытый ящик с перрона</h3>
-                    <p class="text-[11px] text-slate-400">Бесплатный подгон от 450 до 2 800 ₽ на раскрутку</p>
+                    <p class="text-[11px] text-slate-400">Бесплатный подгон от 600 до 2 600 ₽ на раскрутку</p>
                     <button onclick="openFreeCase()" id="free-case-btn" class="mt-1.5 px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono-tech font-black text-xs uppercase btn-active">
                         Забрать с перрона
                     </button>
@@ -473,14 +500,14 @@
                 <div class="w-16 h-16 shrink-0" id="free-case-svg-box"></div>
             </div>
 
-            <!-- Ослабленная Халтурка с выносливостью (12-55 ₽ за тап + запас энергии) -->
+            <!-- Халтурка с выносливостью и сбитием перезарядки замков -->
             <div class="bg-[#14171a] rounded-xl p-4 border border-[#2c333a] space-y-3">
                 <div class="flex justify-between items-start">
                     <div>
                         <h3 class="text-sm font-black text-white uppercase">Разгрузка вагонов (Халтурка)</h3>
-                        <p class="text-[11px] text-slate-400">На крайний случай, если слил весь банк в нулину</p>
+                        <p class="text-[11px] text-slate-400">Каждый мешок даёт рубли и <b class="text-amber-400">срезает 1.5 сек.</b> с перезарядки чемоданов!</p>
                     </div>
-                    <span class="px-2 py-1 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono-tech font-bold text-xs">
+                    <span class="px-2 py-1 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono-tech font-bold text-xs shrink-0">
                         +<span id="click-power">12</span> ₽ / мешок
                     </span>
                 </div>
@@ -494,13 +521,14 @@
                     <div class="w-full h-2.5 bg-[#0b0d0e] rounded-full overflow-hidden border border-[#2c333a]">
                         <div id="stamina-bar" class="h-full bg-gradient-to-r from-amber-600 to-emerald-500 transition-all duration-200" style="width: 100%;"></div>
                     </div>
-                    <div class="text-[10px] text-slate-500 font-mono-tech text-right">+1 ⚡ каждые 3 сек. (1 тап = 2 ⚡)</div>
+                    <div class="text-[10px] text-slate-500 font-mono-tech text-right">+1 ⚡ каждые 3 сек. (1 тап = 2 ⚡ и −1.5 сек. таймера)</div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2.5">
                     <button onclick="doSideHustle(event)" class="py-4 rounded-xl bg-[#1b2024] hover:bg-[#22282e] border border-[#2c333a] active:border-amber-500 transition flex flex-col items-center justify-center space-y-1 btn-active">
                         <i class="fa-solid fa-dolly text-2xl text-amber-400"></i>
                         <span class="text-xs font-mono-tech font-extrabold text-white uppercase">Таскать мешки</span>
+                        <span class="text-[9px] font-mono-tech text-amber-400">−1.5с перезарядки</span>
                     </button>
 
                     <button onclick="collectScrapMetal()" id="scrap-btn" class="py-4 rounded-xl bg-[#1b2024] hover:bg-[#22282e] border border-[#2c333a] transition flex flex-col items-center justify-center space-y-1 btn-active">
@@ -525,7 +553,7 @@
                 </div>
 
                 <div class="bg-[#0b0d0e] border border-[#2c333a] rounded-lg p-2 flex items-center justify-between">
-                    <input id="ref-link-input" type="text" readonly value="https://t.me/otstoynik_bot?start=ref_777" class="bg-transparent text-[11px] font-mono-tech text-slate-300 w-full outline-none truncate pr-2">
+                    <input id="ref-link-input" type="text" readonly value="https://t.me/otstoynik_loot_bot?start=ref_777" class="bg-transparent text-[11px] font-mono-tech text-slate-300 w-full outline-none truncate pr-2">
                     <button onclick="copyRefLink()" class="px-2.5 py-1 bg-[#1b2024] hover:bg-amber-500 hover:text-black text-slate-200 rounded text-[10px] font-mono-tech font-bold shrink-0 transition">
                         КОПИРОВАТЬ
                     </button>
@@ -542,16 +570,16 @@
             </div>
         </section>
 
-        <!-- ВКЛАДКА 5: АВТОРИТЕТЫ (ТАБЛИЦА ЛИДЕРОВ И СТАТИСТИКА) -->
+        <!-- ВКЛАДКА 5: АВТОРИТЕТЫ (100% РЕАЛЬНАЯ ТАБЛИЦА ЛИДЕРОВ FIREBASE) -->
         <section id="tab-leaders" class="hidden space-y-3.5">
             <div class="bg-[#14171a] rounded-xl p-4 border border-[#2c333a] space-y-3">
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="flex items-center space-x-2">
                             <h3 class="text-sm font-black text-white uppercase">Доска авторитетов</h3>
-                            <span id="cloud-status-pill" class="px-1.5 py-0.5 rounded text-[9px] font-mono-tech font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">LIVE ОБЛАКО</span>
+                            <span id="cloud-status-pill" class="px-1.5 py-0.5 rounded text-[9px] font-mono-tech font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">FIREBASE LIVE</span>
                         </div>
-                        <p class="text-[11px] text-slate-400">Реальные игроки и твои друзья в боте (Нащёт + Багажник)</p>
+                        <p class="text-[11px] text-slate-400">Только живые игроки из Telegram (Нащёт + Багажник)</p>
                     </div>
                     <button onclick="openNicknameModal()" class="px-2.5 py-1 rounded bg-[#1b2024] border border-amber-500/40 text-amber-400 text-[10px] font-mono-tech font-bold btn-active">
                         <i class="fa-solid fa-pen mr-1"></i>Позывной
@@ -559,7 +587,7 @@
                 </div>
 
                 <div id="leaderboard-list" class="space-y-2">
-                    <!-- Заполняется через JS и синхронизируется с Firestore -->
+                    <!-- Заполняется исключительно реальными игроками из Firebase Realtime DB -->
                 </div>
             </div>
 
@@ -640,15 +668,20 @@
                         <p id="modal-case-range" class="text-[11px] font-mono-tech text-slate-400">Оценка: 1 000 – 6 500 ₽</p>
                     </div>
                 </div>
-                <button onclick="closeCaseModal()" id="close-modal-btn" class="w-8 h-8 rounded-lg bg-[#1b2024] text-slate-400 hover:text-white flex items-center justify-center">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <div class="flex items-center gap-2">
+                    <span id="pity-status-pill" class="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/40 text-amber-400 font-mono-tech font-bold text-[10px]" title="Гарант окупа после серии минусов">
+                        Фарт: 0/5
+                    </span>
+                    <button onclick="closeCaseModal()" id="close-modal-btn" class="w-8 h-8 rounded-lg bg-[#1b2024] text-slate-400 hover:text-white flex items-center justify-center">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Тело модалки -->
             <div class="p-4 overflow-y-auto space-y-4 flex-1">
                 <!-- Крупный SVG чемодана -->
-                <div id="case-showcase" class="py-3 flex justify-center">
+                <div id="case-showcase" class="py-2 flex justify-center relative">
                     <div id="modal-big-svg" class="w-32 h-32"></div>
                 </div>
 
@@ -660,11 +693,8 @@
                     </div>
                     <div class="relative w-44 h-44 mx-auto">
                         <svg viewBox="0 0 120 120" class="w-full h-full">
-                            <!-- Внешнее кольцо замка -->
                             <circle cx="60" cy="60" r="50" fill="none" stroke="#2c333a" stroke-width="12"/>
-                            <!-- Зеленая зона взлома -->
                             <circle id="lockpick-target-arc" cx="60" cy="60" r="50" fill="none" stroke="#10b981" stroke-width="12" stroke-dasharray="45 314" stroke-dashoffset="0" transform="rotate(-90 60 60)"/>
-                            <!-- Бегущая отмычка -->
                             <g id="lockpick-needle" transform="rotate(0 60 60)">
                                 <line x1="60" y1="60" x2="60" y2="8" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
                                 <circle cx="60" cy="60" r="9" fill="#ef4444"/>
@@ -735,6 +765,64 @@
         </div>
     </div>
 
+    <!-- НОВАЯ МОДАЛКА МИНИ-ИГРЫ КОНТРАБАНДЫ (DARKNET СБРОС В ТАЙНИК) -->
+    <div id="darknet-modal" class="fixed inset-0 z-50 hidden bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-[#14171a] border-2 border-rose-500 rounded-2xl p-4 w-full max-w-sm space-y-3.5 text-center shadow-2xl">
+            <div class="flex items-center justify-between border-b border-[#2c333a] pb-2">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-satellite-dish text-rose-500 animate-pulse"></i>
+                    <h3 class="text-xs font-mono-tech font-black text-white uppercase">DarkNet: Переброс через кордон</h3>
+                </div>
+                <button onclick="closeDarknetModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="bg-[#0b0d0e] p-2.5 rounded-xl border border-[#22272e] flex items-center space-x-3 text-left">
+                <div id="dn-item-svg" class="w-12 h-12 shrink-0"></div>
+                <div class="overflow-hidden">
+                    <div id="dn-item-name" class="text-xs font-black text-white truncate">Контрабанда</div>
+                    <div id="dn-item-base" class="text-[11px] font-mono-tech text-slate-400">Номинал: 0 ₽</div>
+                </div>
+            </div>
+
+            <p class="text-[11px] text-slate-300 leading-snug">
+                Поймай сигнал в <b>зелёном окне</b> для чистого сброса <span class="text-emerald-400 font-bold">(x2.15)</span> или в <b>жёлтом</b> через посредника <span class="text-amber-400 font-bold">(x1.45)</span>. На <b>красном</b> — облава и штраф 15%!
+            </p>
+
+            <!-- Шкала радара с бегунком -->
+            <div class="relative w-full h-9 bg-[#0b0d0e] rounded-lg overflow-hidden border-2 border-[#2c333a] flex">
+                <!-- Красная зона (0 - 34%) -->
+                <div class="h-full bg-red-600/35 border-r border-red-500/50 flex items-center justify-center text-[9px] font-mono-tech font-bold text-red-300" style="width: 34%;">
+                    ОБЛАВА
+                </div>
+                <!-- Желтая зона (34 - 44%) -->
+                <div class="h-full bg-amber-500/35 border-r border-amber-400/50 flex items-center justify-center text-[9px] font-mono-tech font-bold text-amber-200" style="width: 10%;">
+                    x1.45
+                </div>
+                <!-- Зеленая зона (44 - 56% = 12% ширины) -->
+                <div class="h-full bg-emerald-500/50 border-r border-emerald-400 flex items-center justify-center text-[9px] font-mono-tech font-black text-white" style="width: 12%;">
+                    x2.15
+                </div>
+                <!-- Желтая зона (56 - 66%) -->
+                <div class="h-full bg-amber-500/35 border-r border-amber-400/50 flex items-center justify-center text-[9px] font-mono-tech font-bold text-amber-200" style="width: 10%;">
+                    x1.45
+                </div>
+                <!-- Красная зона (66 - 100%) -->
+                <div class="h-full bg-red-600/35 flex items-center justify-center text-[9px] font-mono-tech font-bold text-red-300" style="width: 34%;">
+                    ПАТРУЛЬ
+                </div>
+
+                <!-- Курсор сигнала -->
+                <div id="dn-cursor" class="absolute top-0 bottom-0 w-1.5 bg-white shadow-[0_0_12px_#fff] z-10" style="left: 50%;"></div>
+            </div>
+
+            <button onclick="lockDarknetDrop()" class="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-mono-tech font-black text-xs uppercase shadow-lg btn-active">
+                СБРОСИТЬ В ТАЙНИК СЕЙЧАС!
+            </button>
+        </div>
+    </div>
+
     <!-- МОДАЛЬНОЕ ОКНО АДМИН-ПАНЕЛИ (Код: 77-LUCK-30) -->
     <div id="admin-modal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-[#14171a] border-2 border-amber-500 rounded-2xl p-4 w-full max-w-sm space-y-4">
@@ -797,7 +885,7 @@
             <div class="space-y-1">
                 <h3 class="text-sm font-mono-tech font-black text-white uppercase">Сбросить прогресс в ноль?</h3>
                 <p class="text-xs text-slate-400 leading-relaxed">
-                    Точно обнулить баланс, отмычки и весь багажник до стартовых <b class="text-emerald-400">10 000 ₽</b>? Твой результат на Доске авторитетов тоже обновится.
+                    Точно обнулить баланс, отмычки и весь багажник до стартовых <b class="text-emerald-400">10 000 ₽</b>? Твой результат на Доске авторитетов в Firebase тоже обновится.
                 </p>
             </div>
             <div class="grid grid-cols-2 gap-2 font-mono-tech text-xs">
@@ -821,7 +909,7 @@
                 </button>
             </div>
             <p class="text-xs text-slate-400">Под этим именем тебя увидят друзья в «Доске авторитетов» и в верхнем эфире улова:</p>
-            <input id="nickname-input" type="text" maxlength="22" placeholder="Например: Серёга Гранта" class="w-full bg-[#0b0d0e] border border-[#2c333a] focus:border-amber-500 rounded-lg px-3 py-2 text-sm font-mono-tech text-white outline-none">
+            <input id="nickname-input" type="text" maxlength="22" placeholder="Например: Максим Борода" class="w-full bg-[#0b0d0e] border border-[#2c333a] focus:border-amber-500 rounded-lg px-3 py-2 text-sm font-mono-tech text-white outline-none">
             <button onclick="savePlayerNickname()" class="w-full py-2.5 rounded-lg bg-amber-500 text-slate-950 font-mono-tech font-black text-xs uppercase btn-active">
                 Сохранить позывной
             </button>
@@ -832,112 +920,9 @@
     <div id="toast-container" class="fixed top-14 left-1/2 -translate-x-1/2 z-50 space-y-1.5 pointer-events-none w-[92%] max-w-[420px]"></div>
 </div>
 
-<!-- FIREBASE CLOUD MULTIPLAYER SYNC (ДЛЯ ДОСКИ АВТОРИТЕТОВ И ЖИВОГО ЭФИРА МЕЖДУ ДРУЗЬЯМИ) -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    let db = null;
-    let auth = null;
-    let currentUser = null;
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'otstoynik-tg-miniapp';
-
-    async function initCloudMultiplayer() {
-        try {
-            if (typeof __firebase_config === 'undefined' || !__firebase_config) return;
-            const firebaseConfig = JSON.parse(__firebase_config);
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                const cred = await signInWithCustomToken(auth, __initial_auth_token);
-                currentUser = cred.user;
-            } else {
-                const cred = await signInAnonymously(auth);
-                currentUser = cred.user;
-            }
-
-            if (!currentUser) return;
-
-            // Слушаем общую Доску авторитетов (все реальные игроки и друзья)
-            const leadersCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-            onSnapshot(leadersCol, (snapshot) => {
-                const players = [];
-                snapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    if (data && data.name) {
-                        players.push({ id: docSnap.id, ...data });
-                    }
-                });
-                if (window.updateCloudLeaderboardData) {
-                    window.updateCloudLeaderboardData(players);
-                }
-            }, (err) => {
-                console.warn('Leaderboard sync fallback:', err);
-            });
-
-            // Слушаем живую ленту дропов друзей
-            const feedCol = collection(db, 'artifacts', appId, 'public', 'data', 'live_drops');
-            onSnapshot(feedCol, (snapshot) => {
-                const drops = [];
-                snapshot.forEach(docSnap => {
-                    const d = docSnap.data();
-                    if (d && d.text) drops.push(d);
-                });
-                drops.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                if (drops.length > 0 && window.pushCloudLiveDrop) {
-                    window.pushCloudLiveDrop(drops[0].text);
-                }
-            }, (err) => {});
-
-            // Первичная отправка профиля игрока в облако
-            if (window.syncMyProfileToCloud) {
-                window.syncMyProfileToCloud();
-            }
-        } catch (e) {
-            console.warn('Running in local/offline mode:', e);
-        }
-    }
-
-    window.syncProfileToFirestore = async function(profilePayload) {
-        if (!db || !currentUser) return;
-        try {
-            const docId = String(profilePayload.tgId || currentUser.uid);
-            const playerDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', docId);
-            await setDoc(playerDoc, {
-                uid: currentUser.uid,
-                tgId: docId,
-                name: profilePayload.name,
-                rank: profilePayload.rank,
-                balance: profilePayload.balance,
-                netWorth: profilePayload.netWorth,
-                casesOpened: profilePayload.casesOpened,
-                updatedAt: Date.now()
-            }, { merge: true });
-        } catch (e) {}
-    };
-
-    window.publishDropToFirestore = async function(dropText) {
-        if (!db || !currentUser) return;
-        try {
-            const eventId = 'drop_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-            const dropDoc = doc(db, 'artifacts', appId, 'public', 'data', 'live_drops', eventId);
-            await setDoc(dropDoc, {
-                uid: currentUser.uid,
-                text: dropText,
-                timestamp: Date.now()
-            });
-        } catch (e) {}
-    };
-
-    initCloudMultiplayer();
-</script>
-
 <script>
     /********************************************************************
-     * 1. TELEGRAM WEBAPP & ПРОЦЕДУРНЫЙ ЗВУКОВОЙ ДВИЖОК (WEB AUDIO API)
+     * 1. TELEGRAM WEBAPP & РЕАЛЬНАЯ БАЗА FIREBASE REALTIME DATABASE
      ********************************************************************/
     const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
     let tgUserId = localStorage.getItem('otstoynik_device_uid') || ('user_' + Math.floor(100000 + Math.random() * 900000));
@@ -957,6 +942,74 @@
             }
         }
     }
+
+    // Подключение к вашей реальной базе Firebase Realtime Database
+    const firebaseConfig = {
+        apiKey: "AIzaSyBx4itR9GkI4Qzyx9EY_XXGSTNu_5mvLXw",
+        authDomain: "otstoynik-game.firebaseapp.com",
+        databaseURL: "https://otstoynik-game-default-rtdb.firebaseio.com",
+        projectId: "otstoynik-game",
+        storageBucket: "otstoynik-game.firebasestorage.app",
+        messagingSenderId: "672258876593",
+        appId: "1:672258876593:web:63db19582953e533b96e90"
+    };
+
+    let rtdb = null;
+    try {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        rtdb = firebase.database();
+    } catch (err) {
+        console.warn("Firebase RTDB init warning:", err);
+    }
+
+    function initRealtimeDatabaseListeners() {
+        if (!rtdb) return;
+
+        // 1. Слушаем реальную таблицу лидеров
+        rtdb.ref('leaderboard').on('value', (snapshot) => {
+            const data = snapshot.val();
+            const players = data ? Object.values(data) : [];
+            window.updateCloudLeaderboardData(players);
+        });
+
+        // 2. Слушаем реальный живой эфир дропов
+        rtdb.ref('live_drops').limitToLast(1).on('child_added', (snapshot) => {
+            const drop = snapshot.val();
+            if (drop && drop.text) {
+                const ticker = document.getElementById('live-drop-ticker');
+                if (ticker) ticker.textContent = drop.text;
+            }
+        });
+    }
+
+    window.syncProfileToFirestore = function(profilePayload) {
+        if (!rtdb) return;
+        try {
+            const docId = String(profilePayload.tgId || tgUserId);
+            rtdb.ref('leaderboard/' + docId).set({
+                tgId: docId,
+                name: profilePayload.name,
+                rank: profilePayload.rank,
+                balance: profilePayload.balance,
+                netWorth: profilePayload.netWorth,
+                casesOpened: profilePayload.casesOpened,
+                updatedAt: Date.now()
+            });
+        } catch (e) {}
+    };
+
+    window.publishDropToFirestore = function(dropText) {
+        if (!rtdb) return;
+        try {
+            rtdb.ref('live_drops').push({
+                uid: tgUserId,
+                text: dropText,
+                timestamp: Date.now()
+            });
+        } catch (e) {}
+    };
 
     function triggerHaptic(type = 'light') {
         try {
@@ -1065,7 +1118,7 @@
     }
 
     /********************************************************************
-     * 2. ГЕНЕРАТОР КАСТОМНОЙ ВЕКТОРНОЙ ГРАФИКИ (9 ЧЕМОДАНОВ + 50+ ПРЕДМЕТОВ)
+     * 2. ГЕНЕРАТОР КАСТОМНОЙ ВЕКТОРНОЙ ГРАФИКИ (11 ЧЕМОДАНОВ + 65+ ПРЕДМЕТОВ И ПАСХАЛОК)
      ********************************************************************/
     function getCaseSVG(caseId) {
         const svgs = {
@@ -1112,6 +1165,14 @@
                     <line x1="58" y1="20" x2="58" y2="66" stroke="#9a3412" stroke-width="5"/>
                     <polygon points="40,32 48,43 40,54 32,43" fill="#f97316" stroke="#ffedd5" stroke-width="1.5"/>
                 </svg>`,
+            case_syndicate: `
+                <svg viewBox="0 0 80 80" class="w-full h-full drop-shadow">
+                    <rect x="8" y="18" width="64" height="48" rx="5" fill="#042f2e" stroke="#14b8a6" stroke-width="2.8"/>
+                    <path d="M24 18 V12 H56 V18" fill="none" stroke="#2dd4bf" stroke-width="3"/>
+                    <line x1="8" y1="42" x2="72" y2="42" stroke="#0f766e" stroke-width="4"/>
+                    <circle cx="40" cy="42" r="11" fill="#090d16" stroke="#2dd4bf" stroke-width="2.5"/>
+                    <polygon points="40,35 46,45 34,45" fill="#f59e0b"/>
+                </svg>`,
             case_epic: `
                 <svg viewBox="0 0 80 80" class="w-full h-full drop-shadow">
                     <rect x="10" y="16" width="60" height="52" rx="6" fill="#3b0764" stroke="#c084fc" stroke-width="3"/>
@@ -1137,6 +1198,16 @@
                     <circle cx="28" cy="42" r="7" fill="#500724" stroke="#f472b6" stroke-width="2"/>
                     <circle cx="52" cy="42" r="7" fill="#500724" stroke="#f472b6" stroke-width="2"/>
                     <rect x="36" y="39" width="8" height="6" fill="#fbcfe8"/>
+                </svg>`,
+            case_bunker: `
+                <svg viewBox="0 0 80 80" class="w-full h-full drop-shadow">
+                    <rect x="8" y="16" width="64" height="50" rx="6" fill="#1e1b4b" stroke="#a855f7" stroke-width="3"/>
+                    <circle cx="40" cy="41" r="16" fill="#0f172a" stroke="#c084fc" stroke-width="2.5"/>
+                    <circle cx="40" cy="41" r="6" fill="#f59e0b"/>
+                    <line x1="40" y1="25" x2="40" y2="33" stroke="#c084fc" stroke-width="3"/>
+                    <line x1="40" y1="49" x2="40" y2="57" stroke="#c084fc" stroke-width="3"/>
+                    <line x1="24" y1="41" x2="32" y2="41" stroke="#c084fc" stroke-width="3"/>
+                    <line x1="48" y1="41" x2="56" y2="41" stroke="#c084fc" stroke-width="3"/>
                 </svg>`,
             case_secret: `
                 <svg viewBox="0 0 80 80" class="w-full h-full drop-shadow">
@@ -1189,13 +1260,25 @@
             neuro_chip: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="16" y="16" width="32" height="32" rx="4" fill="#0f172a" stroke="#ec4899" stroke-width="2.5"/><rect x="24" y="24" width="16" height="16" fill="#ec4899"/><line x1="22" y1="8" x2="22" y2="16" stroke="#fbcfe8" stroke-width="2.5"/><line x1="32" y1="8" x2="32" y2="16" stroke="#fbcfe8" stroke-width="2.5"/><line x1="42" y1="8" x2="42" y2="16" stroke="#fbcfe8" stroke-width="2.5"/><line x1="22" y1="48" x2="22" y2="56" stroke="#fbcfe8" stroke-width="2.5"/><line x1="32" y1="48" x2="32" y2="56" stroke="#fbcfe8" stroke-width="2.5"/><line x1="42" y1="48" x2="42" y2="56" stroke="#fbcfe8" stroke-width="2.5"/></svg>`,
             sat_terminal: `<svg viewBox="0 0 64 64" class="w-full h-full"><ellipse cx="32" cy="26" rx="20" ry="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/><line x1="32" y1="26" x2="32" y2="10" stroke="#f59e0b" stroke-width="2.5"/><circle cx="32" cy="10" r="3" fill="#ef4444"/><rect x="20" y="42" width="24" height="12" rx="2" fill="#334155" stroke="#94a3b8" stroke-width="2"/></svg>`,
             cigs_box: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="14" y="14" width="36" height="38" rx="3" fill="#78350f" stroke="#d97706" stroke-width="2"/><rect x="14" y="24" width="36" height="10" fill="#fef3c7"/><text x="32" y="32" text-anchor="middle" fill="#78350f" font-family="monospace" font-weight="900" font-size="7">БРАК</text></svg>`,
-            sneakers_box: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="8" y="22" width="48" height="28" rx="2" fill="#ea580c" stroke="#fed7aa" stroke-width="2"/><rect x="6" y="16" width="52" height="8" rx="1" fill="#c2410c" stroke="#fed7aa" stroke-width="2"/><path d="M20 36 Q32 42 44 34" stroke="#fff" stroke-width="3" fill="none"/></svg>`
+            sneakers_box: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="8" y="22" width="48" height="28" rx="2" fill="#ea580c" stroke="#fed7aa" stroke-width="2"/><rect x="6" y="16" width="52" height="8" rx="1" fill="#c2410c" stroke="#fed7aa" stroke-width="2"/><path d="M20 36 Q32 42 44 34" stroke="#fff" stroke-width="3" fill="none"/></svg>`,
+            // НОВЫЕ ПРЕДМЕТЫ И ПАСХАЛКИ (БОРОДКА МАКСИМА, ПРОТОК МАКСИМА И ДР.)
+            maxim_beard: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="24" r="12" fill="#fde68a"/><path d="M18 26 C16 44 26 54 32 56 C38 54 48 44 46 26 C42 32 36 33 32 33 C28 33 22 32 18 26 Z" fill="#78350f" stroke="#f59e0b" stroke-width="2"/><rect x="22" y="18" width="8" height="4" rx="1" fill="#111827"/><rect x="34" y="18" width="8" height="4" rx="1" fill="#111827"/></svg>`,
+            maxim_protok: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="12" y="24" width="40" height="16" rx="4" fill="#0f766e" stroke="#2dd4bf" stroke-width="2.5"/><circle cx="32" cy="32" r="10" fill="#111827" stroke="#f59e0b" stroke-width="2.5"/><path d="M32 12 V22 M24 12 H40" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="32" r="3" fill="#2dd4bf"/></svg>`,
+            boiler_ussr: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M26 12 V28 C20 32 20 42 32 42 C44 42 44 32 38 28 V12" fill="none" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round"/><rect x="22" y="8" width="20" height="6" rx="2" fill="#ef4444"/><path d="M32 8 C32 2 48 4 50 18" fill="none" stroke="#475569" stroke-width="2.5"/></svg>`,
+            socket_10mm: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="20" y="14" width="24" height="36" rx="3" fill="#64748b" stroke="#e2e8f0" stroke-width="2.5"/><line x1="20" y1="24" x2="44" y2="24" stroke="#334155" stroke-width="3"/><text x="32" y="41" text-anchor="middle" fill="#facc15" font-family="monospace" font-weight="900" font-size="11">10</text></svg>`,
+            gaba_kettle: `<svg viewBox="0 0 64 64" class="w-full h-full"><ellipse cx="32" cy="36" rx="16" ry="14" fill="#065f46" stroke="#34d399" stroke-width="2"/><path d="M46 32 L56 24 M16 30 C10 26 10 42 16 40" stroke="#34d399" stroke-width="3" fill="none"/><ellipse cx="32" cy="22" rx="8" ry="3" fill="#fbbf24"/></svg>`,
+            esp32_belt: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="6" y="24" width="52" height="16" rx="4" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/><rect x="24" y="21" width="16" height="22" rx="2" fill="#047857" stroke="#34d399" stroke-width="2"/><circle cx="14" cy="32" r="3" fill="#f59e0b"/><circle cx="50" cy="32" r="3" fill="#f59e0b"/></svg>`,
+            whistler_radar: `<svg viewBox="0 0 64 64" class="w-full h-full"><polygon points="14,26 50,26 56,44 8,44" fill="#18181b" stroke="#ef4444" stroke-width="2"/><rect x="18" y="32" width="28" height="6" fill="#dc2626"/><path d="M24 18 Q32 10 40 18" stroke="#f59e0b" stroke-width="2.5" fill="none"/></svg>`,
+            barsetka_bag: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="10" y="18" width="44" height="32" rx="4" fill="#451a03" stroke="#d97706" stroke-width="2"/><rect x="26" y="28" width="12" height="8" rx="1" fill="#fbbf24"/><path d="M10 28 H54" stroke="#78350f" stroke-width="2"/></svg>`,
+            company_stamp: `<svg viewBox="0 0 64 64" class="w-full h-full"><ellipse cx="32" cy="18" rx="8" ry="10" fill="#1e40af" stroke="#60a5fa" stroke-width="2"/><rect x="28" y="28" width="8" height="12" fill="#93c5fd"/><rect x="16" y="40" width="32" height="8" rx="2" fill="#1e3a8a" stroke="#60a5fa" stroke-width="2"/></svg>`,
+            stout_can: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="20" y="10" width="24" height="44" rx="4" fill="#18181b" stroke="#fde68a" stroke-width="2"/><rect x="20" y="22" width="24" height="16" fill="#fef3c7"/><text x="32" y="33" text-anchor="middle" fill="#18181b" font-family="monospace" font-weight="900" font-size="7">STOUT</text></svg>`,
+            kali_laptop: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="14" y="12" width="36" height="26" rx="2" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/><polygon points="8,38 56,38 60,48 4,48" fill="#334155" stroke="#94a3b8" stroke-width="2"/><text x="32" y="28" text-anchor="middle" fill="#10b981" font-family="monospace" font-weight="900" font-size="8">&gt;_KALI</text></svg>`
         };
         return items[artId] || items.nokia;
     }
 
     /********************************************************************
-     * 3. КАТАЛОГ КАТЕГОРИЙ, FLOAT-СОСТОЯНИЙ, 9 ЧЕМОДАНОВ И ОСЛАБЛЕННОГО РЕЙДА
+     * 3. КАТАЛОГ КАТЕГОРИЙ, FLOAT-СОСТОЯНИЙ, 11 ЧЕМОДАНОВ (ЛЕГКИЙ СТАРТ -> ХАРДКОР МИД/ЛЕЙТ)
      ********************************************************************/
     const CATEGORIES = {
         tech: { name: 'Электроника', code: 'TECH' },
@@ -1206,8 +1289,8 @@
 
     const FLOAT_CONDITIONS = [
         { id: 'worn', name: 'С дефектом', mult: 0.7, color: 'text-slate-400 border-slate-500 bg-slate-800/60', weight: 32 },
-        { id: 'used', name: 'Б/У Рабочий', mult: 1.0, color: 'text-sky-300 border-sky-500/60 bg-sky-950/50', weight: 50 },
-        { id: 'perfect', name: 'В плёнке', mult: 1.5, color: 'text-amber-300 border-amber-400 bg-amber-500/20', weight: 18 }
+        { id: 'used', name: 'Б/У Рабочий', mult: 1.0, color: 'text-sky-300 border-sky-500/60 bg-sky-950/50', weight: 52 },
+        { id: 'perfect', name: 'В плёнке', mult: 1.65, color: 'text-amber-300 border-amber-400 bg-amber-500/20', weight: 16 }
     ];
 
     const RARITIES = {
@@ -1216,9 +1299,8 @@
         yard: { name: 'Дворовый', color: 'text-lime-400', badge: 'bg-lime-700', css: 'rarity-yard', glow: 'glow-yard' },
         rare: { name: 'Редкий', color: 'text-sky-400', badge: 'bg-sky-700', css: 'rarity-rare', glow: 'glow-rare' },
         criminal: { name: 'Блатной', color: 'text-orange-400', badge: 'bg-orange-700', css: 'rarity-criminal', glow: 'glow-criminal' },
-        epic: { name: 'Эпический', color: 'text-purple-400', badge: 'bg-purple-700', css: 'rarity-epic', glow: 'glow-epic' },
-        legendary: { name: 'Авторитет', color: 'text-amber-400', badge: 'bg-amber-600', css: 'rarity-legendary', glow: 'glow-legendary' },
-        ultra: { name: 'Ультра', color: 'text-pink-400', badge: 'bg-pink-700', css: 'rarity-ultra', glow: 'glow-ultra' },
+        syndicate: { name: 'Синдикат', color: 'text-teal-400', badge: 'bg-teal-700', css: 'rarity-syndicate', glow: 'glow-syndicate' },
+        bunker: { name: 'Бункер', color: 'text-purple-400', badge: 'bg-purple-800', css: 'rarity-bunker', glow: 'glow-bunker' },
         secret: { name: 'Спецхран', color: 'text-red-400', badge: 'bg-red-700', css: 'rarity-secret', glow: 'glow-secret' },
         contraband: { name: 'Контрабанда', color: 'text-rose-400', badge: 'bg-rose-700', css: 'rarity-contraband', glow: 'glow-secret' }
     };
@@ -1226,195 +1308,255 @@
     const CASES = [
         {
             id: 'case_common',
+            tier: 1,
+            cooldownSec: 6,
             name: 'Гаражный чермет',
             subtitle: 'Ржавый ящик из-под верстака',
             price: 3000,
             rarity: 'common',
-            rangeText: '800 – 9 500 ₽',
+            rangeText: '1 650 – 11 000 ₽',
             keyDropChance: 0,
             loot: [
-                { id: 'c1', name: 'Тапик Nokia 3310', art: 'nokia', price: 1100, rarity: 'common', category: 'tech', weight: 28 },
-                { id: 'c2', name: 'Паленые AirPods с перехода', art: 'earphones', price: 1650, rarity: 'common', category: 'tech', weight: 24 },
-                { id: 'c3', name: 'Кассета «Бригада» VHS', art: 'vhs', price: 2200, rarity: 'common', category: 'art', weight: 18 },
-                { id: 'c4', name: 'Бухта медной проволоки', art: 'copper_coil', price: 3100, rarity: 'uncommon', category: 'auto', weight: 14 },
-                { id: 'c5', name: 'Серебряный бисмарк', art: 'chain', price: 4200, rarity: 'uncommon', category: 'luxury', weight: 9 },
-                { id: 'c6', name: 'Сабвуфер из Девятки', art: 'subwoofer', price: 5400, rarity: 'uncommon', category: 'auto', weight: 5 },
-                { id: 'c7', name: 'Командирские часы СССР', art: 'watch', price: 6500, rarity: 'rare', category: 'luxury', weight: 2 }
+                { id: 'c1', name: 'Тапик Nokia 3310', art: 'nokia', price: 1650, rarity: 'common', category: 'tech', weight: 28 },
+                { id: 'c_b1', name: 'Советский кипятильник с накипью', art: 'boiler_ussr', price: 1850, rarity: 'common', category: 'tech', weight: 24 },
+                { id: 'c_s10', name: 'Потерянная головка на 10', art: 'socket_10mm', price: 2200, rarity: 'common', category: 'auto', weight: 20 },
+                { id: 'c4', name: 'Бухта медной проволоки', art: 'copper_coil', price: 3400, rarity: 'uncommon', category: 'auto', weight: 14 },
+                { id: 'c5', name: 'Серебряный бисмарк', art: 'chain', price: 4600, rarity: 'uncommon', category: 'luxury', weight: 8 },
+                { id: 'c_bm1', name: 'Слесарная бородка Максима', art: 'maxim_beard', price: 5800, rarity: 'rare', category: 'auto', weight: 4 },
+                { id: 'c7', name: 'Командирские часы СССР', art: 'watch', price: 7800, rarity: 'rare', category: 'luxury', weight: 2 }
             ]
         },
         {
             id: 'case_uncommon',
+            tier: 2,
+            cooldownSec: 7,
             name: 'Вокзальная сумка',
             subtitle: 'Клетчатый баул челнока из 90-х',
-            price: 8000,
+            price: 8500,
             rarity: 'uncommon',
-            rangeText: '2 100 – 27 000 ₽',
+            rangeText: '4 500 – 32 000 ₽',
             keyDropChance: 0.02,
             loot: [
-                { id: 'u1', name: 'Набор головок СССР', art: 'wrench', price: 3100, rarity: 'common', category: 'auto', weight: 28 },
-                { id: 'u2', name: 'Магнитола Pioneer со съёмной панелью', art: 'car_radio', price: 4800, rarity: 'uncommon', category: 'auto', weight: 24 },
-                { id: 'u3', name: 'Разбитый Poco X3 Pro', art: 'smartphone', price: 6400, rarity: 'uncommon', category: 'tech', weight: 19 },
-                { id: 'u4', name: 'Фотоаппарат «Зенит-Е»', art: 'retro_camera', price: 8900, rarity: 'yard', category: 'art', weight: 14 },
-                { id: 'u5', name: 'Золотая печатка 585', art: 'ring', price: 12200, rarity: 'rare', category: 'luxury', weight: 9 },
-                { id: 'u6', name: 'Прошитая PS4 Slim', art: 'console', price: 15500, rarity: 'rare', category: 'tech', weight: 4 },
-                { id: 'u7', name: 'Швейцарский Tissot', art: 'watch', price: 18500, rarity: 'epic', category: 'luxury', weight: 2 }
+                { id: 'u_bar', name: 'Кожаная барсетка с жетонами', art: 'barsetka_bag', price: 4500, rarity: 'common', category: 'art', weight: 28 },
+                { id: 'u2', name: 'Магнитола Pioneer со съёмной панелью', art: 'car_radio', price: 6200, rarity: 'uncommon', category: 'auto', weight: 24 },
+                { id: 'u_st', name: 'Банка белого стаута «Братва»', art: 'stout_can', price: 7800, rarity: 'uncommon', category: 'art', weight: 18 },
+                { id: 'u_bm2', name: 'Перепускной браток Максим', art: 'maxim_protok', price: 9800, rarity: 'yard', category: 'auto', weight: 14 },
+                { id: 'u5', name: 'Золотая печатка 585', art: 'ring', price: 14500, rarity: 'rare', category: 'luxury', weight: 9 },
+                { id: 'u6', name: 'Прошитая PS4 Slim', art: 'console', price: 18500, rarity: 'rare', category: 'tech', weight: 5 },
+                { id: 'u7', name: 'Швейцарский Tissot', art: 'watch', price: 24000, rarity: 'epic', category: 'luxury', weight: 2 }
             ]
         },
         {
             id: 'case_yard',
+            tier: 3,
+            cooldownSec: 8,
             name: 'Подвальный ящик',
             subtitle: 'Складской хабар ЖКХ и дворовых гаражей',
-            price: 15000,
+            price: 18000,
             rarity: 'yard',
-            rangeText: '4 200 – 52 000 ₽',
-            keyDropChance: 0.04,
+            rangeText: '8 500 – 58 000 ₽',
+            keyDropChance: 0.03,
             loot: [
-                { id: 'y1', name: 'Гидравлический домкрат 3т', art: 'jack_lift', price: 6200, rarity: 'uncommon', category: 'auto', weight: 28 },
-                { id: 'y2', name: 'Трансформаторная медь 15 кг', art: 'copper_coil', price: 9400, rarity: 'yard', category: 'auto', weight: 25 },
-                { id: 'y3', name: 'Литые диски ВСМПО R17', art: 'rim', price: 13800, rarity: 'yard', category: 'auto', weight: 20 },
-                { id: 'y4', name: 'Кожанка бригадира из 90-х', art: 'leather_jacket', price: 18500, rarity: 'rare', category: 'art', weight: 14 },
-                { id: 'y5', name: 'Глушилка GPS-сигналов', art: 'jammer', price: 25000, rarity: 'criminal', category: 'tech', weight: 8 },
-                { id: 'y6', name: 'Свёрток из вентиляции', art: 'contraband_pack', price: 34000, rarity: 'contraband', category: 'art', isContraband: true, weight: 5 }
+                { id: 'y1', name: 'Гидравлический домкрат 3т', art: 'jack_lift', price: 8600, rarity: 'common', category: 'auto', weight: 28 },
+                { id: 'y2', name: 'Трансформаторная медь 15 кг', art: 'copper_coil', price: 11500, rarity: 'yard', category: 'auto', weight: 24 },
+                { id: 'y_pr1', name: 'Перепускной браток Максим', art: 'maxim_protok', price: 15800, rarity: 'yard', category: 'auto', weight: 19 },
+                { id: 'y3', name: 'Литые диски ВСМПО R17', art: 'rim', price: 21000, rarity: 'rare', category: 'auto', weight: 15 },
+                { id: 'y4', name: 'Кожанка бригадира из 90-х', art: 'leather_jacket', price: 27500, rarity: 'criminal', category: 'art', weight: 9 },
+                { id: 'y6', name: 'Свёрток из вентиляции', art: 'contraband_pack', price: 35000, rarity: 'contraband', category: 'art', isContraband: true, weight: 5 }
             ]
         },
         {
             id: 'case_rare',
+            tier: 4,
+            cooldownSec: 10,
             name: 'Контейнер перекупа',
             subtitle: 'Изъят со штрафстоянки у автоподборщика',
-            price: 30000,
+            price: 42000,
             rarity: 'rare',
-            rangeText: '7 500 – 110 000 ₽',
-            keyDropChance: 0.06,
+            rangeText: '16 000 – 135 000 ₽',
+            keyDropChance: 0.05,
             loot: [
-                { id: 'r1', name: 'Срезанный катализатор', art: 'catalyst', price: 11500, rarity: 'yard', category: 'auto', weight: 29 },
-                { id: 'r2', name: 'Айфон 15 без Айклауда', art: 'smartphone', price: 21000, rarity: 'rare', category: 'tech', weight: 25 },
-                { id: 'r3', name: 'Мутный свёрток с таможни', art: 'contraband_pack', price: 32000, rarity: 'contraband', category: 'art', isContraband: true, weight: 16 },
-                { id: 'r4', name: 'Видеокарта RTX 4080 Super', art: 'gpu_rig', price: 44000, rarity: 'epic', category: 'tech', weight: 16 },
-                { id: 'r5', name: 'Перстень с якутским брюликом', art: 'ring', price: 58000, rarity: 'epic', category: 'luxury', weight: 9 },
-                { id: 'r6', name: 'Слиток артельного золота', art: 'gold_bar', price: 74000, rarity: 'legendary', category: 'luxury', weight: 5 }
+                { id: 'r_wh', name: 'Антирадар Whistler из Барнаула', art: 'whistler_radar', price: 16500, rarity: 'common', category: 'auto', weight: 32 },
+                { id: 'r1', name: 'Срезанный катализатор', art: 'catalyst', price: 24000, rarity: 'yard', category: 'auto', weight: 26 },
+                { id: 'r2', name: 'Айфон 15 без Айклауда', art: 'smartphone', price: 36000, rarity: 'rare', category: 'tech', weight: 19 },
+                { id: 'r4', name: 'Видеокарта RTX 4080 Super', art: 'gpu_rig', price: 54000, rarity: 'epic', category: 'tech', weight: 11 },
+                { id: 'r3', name: 'Мутный свёрток с таможни', art: 'contraband_pack', price: 62000, rarity: 'contraband', category: 'art', isContraband: true, weight: 7 },
+                { id: 'r6', name: 'Слиток артельного золота', art: 'gold_bar', price: 86000, rarity: 'legendary', category: 'luxury', weight: 5 }
             ]
         },
         {
             id: 'case_criminal',
+            tier: 5,
+            cooldownSec: 11,
             name: 'Воровской общак',
             subtitle: 'Железный сундук из малины за городом',
-            price: 55000,
+            price: 95000,
             rarity: 'criminal',
-            rangeText: '14 000 – 210 000 ₽',
-            keyDropChance: 0.10,
+            rangeText: '34 000 – 290 000 ₽',
+            keyDropChance: 0.07,
             loot: [
-                { id: 'cr1', name: 'Комплект раций с шифрованием', art: 'jammer', price: 22000, rarity: 'rare', category: 'tech', weight: 28 },
-                { id: 'cr2', name: 'Золотая цепь «Якорь» 200г', art: 'chain', price: 39000, rarity: 'criminal', category: 'luxury', weight: 25 },
-                { id: 'cr3', name: 'Пакет с двойным дном', art: 'contraband_pack', price: 58000, rarity: 'contraband', category: 'art', isContraband: true, weight: 18 },
-                { id: 'cr4', name: 'Майнинг-риг на 6 карт', art: 'gpu_rig', price: 78000, rarity: 'epic', category: 'tech', weight: 15 },
-                { id: 'cr5', name: 'Вакуумная пачка 10 000 €', art: 'cash_pack', price: 105000, rarity: 'legendary', category: 'art', weight: 9 },
-                { id: 'cr6', name: 'Ключи от BMW M5 F90 без ПТС', art: 'car_key', price: 142000, rarity: 'legendary', category: 'auto', weight: 5 }
+                { id: 'cr1', name: 'Комплект раций с шифрованием', art: 'jammer', price: 35000, rarity: 'rare', category: 'tech', weight: 33 },
+                { id: 'cr_esp', name: 'Пояс-компас на ESP32 с вибро', art: 'esp32_belt', price: 54000, rarity: 'criminal', category: 'tech', weight: 26 },
+                { id: 'cr2', name: 'Золотая цепь «Якорь» 200г', art: 'chain', price: 82000, rarity: 'criminal', category: 'luxury', weight: 18 },
+                { id: 'cr4', name: 'Майнинг-риг на 6 карт', art: 'gpu_rig', price: 125000, rarity: 'epic', category: 'tech', weight: 11 },
+                { id: 'cr3', name: 'Пакет с двойным дном', art: 'contraband_pack', price: 140000, rarity: 'contraband', category: 'art', isContraband: true, weight: 7 },
+                { id: 'cr6', name: 'Ключи от BMW M5 F90 без ПТС', art: 'car_key', price: 185000, rarity: 'legendary', category: 'auto', weight: 5 }
+            ]
+        },
+        // НОВЫЙ ПРОМЕЖУТОЧНЫЙ ЧЕМОДАН №6: ГАРАЖ СИНДИКАТА
+        {
+            id: 'case_syndicate',
+            tier: 6,
+            cooldownSec: 12,
+            name: 'Гараж Синдиката',
+            subtitle: 'Закрытый бокс тюнинг-ателье и хакеров',
+            price: 195000,
+            rarity: 'syndicate',
+            rangeText: '68 000 – 590 000 ₽',
+            keyDropChance: 0.09,
+            loot: [
+                { id: 'sy1', name: 'Ноутбук с Kali Linux и эксплойтами', art: 'kali_laptop', price: 72000, rarity: 'rare', category: 'tech', weight: 34 },
+                { id: 'sy2', name: 'Печать ликвидированного ООО', art: 'company_stamp', price: 115000, rarity: 'criminal', category: 'art', weight: 26 },
+                { id: 'sy3', name: 'Неоновая бородка Максима (Амулет)', art: 'maxim_beard', price: 185000, rarity: 'syndicate', category: 'luxury', weight: 18 },
+                { id: 'sy4', name: 'Турбо-браток Максим Stage 3', art: 'maxim_protok', price: 260000, rarity: 'epic', category: 'auto', weight: 11 },
+                { id: 'sy5', name: 'Опечатанный тубус Синдиката', art: 'contraband_pack', price: 295000, rarity: 'contraband', category: 'art', isContraband: true, weight: 6 },
+                { id: 'sy6', name: 'Ключи от Porsche 911 GT3 RS', art: 'car_key', price: 375000, rarity: 'legendary', category: 'auto', weight: 5 }
             ]
         },
         {
             id: 'case_epic',
+            tier: 7,
+            cooldownSec: 14,
             name: 'Сейф чиновника',
             subtitle: 'Вытащили из бани во время проверки',
-            price: 95000,
+            price: 390000,
             rarity: 'epic',
-            rangeText: '24 000 – 420 000 ₽',
-            keyDropChance: 0.14,
+            rangeText: '135 000 – 1 150 000 ₽',
+            keyDropChance: 0.12,
             loot: [
-                { id: 'e1', name: 'Серверная стойка ИИ', art: 'gpu_rig', price: 36000, rarity: 'rare', category: 'tech', weight: 30 },
-                { id: 'e2', name: 'Ключи от Камри 3.5 на номерах', art: 'car_key', price: 62000, rarity: 'epic', category: 'auto', weight: 25 },
-                { id: 'e3', name: 'Дипломат с откатом', art: 'contraband_pack', price: 105000, rarity: 'contraband', category: 'art', isContraband: true, weight: 17 },
-                { id: 'e4', name: 'Банковский слиток 250г', art: 'gold_bar', price: 148000, rarity: 'epic', category: 'luxury', weight: 15 },
-                { id: 'e5', name: 'Холодный кошелёк Ledger с ETH', art: 'crypto_drive', price: 210000, rarity: 'legendary', category: 'tech', weight: 8 },
-                { id: 'e6', name: 'Золотой Ролекс Субмаринер', art: 'watch', price: 280000, rarity: 'legendary', category: 'luxury', weight: 5 }
+                { id: 'e1', name: 'Серверная стойка ИИ', art: 'gpu_rig', price: 140000, rarity: 'rare', category: 'tech', weight: 35 },
+                { id: 'e2', name: 'Ключи от Камри 3.5 на спецномерах', art: 'car_key', price: 245000, rarity: 'epic', category: 'auto', weight: 26 },
+                { id: 'e4', name: 'Банковский слиток 250г', art: 'gold_bar', price: 380000, rarity: 'epic', category: 'luxury', weight: 18 },
+                { id: 'e3', name: 'Дипломат с откатом', art: 'contraband_pack', price: 460000, rarity: 'contraband', category: 'art', isContraband: true, weight: 8 },
+                { id: 'e5', name: 'Холодный кошелёк Ledger с ETH', art: 'crypto_drive', price: 560000, rarity: 'legendary', category: 'tech', weight: 8 },
+                { id: 'e6', name: 'Золотой Ролекс Субмаринер', art: 'watch', price: 740000, rarity: 'legendary', category: 'luxury', weight: 5 }
             ]
         },
         {
             id: 'case_legendary',
+            tier: 8,
+            cooldownSec: 15,
             name: 'Дипломат Олигарха',
             subtitle: 'Забыт на частном борту в Шереметьево',
-            price: 280000,
+            price: 850000,
             rarity: 'legendary',
-            rangeText: '65 000 – 1 500 000 ₽',
-            keyDropChance: 0.22,
+            rangeText: '280 000 – 2 600 000 ₽',
+            keyDropChance: 0.16,
             loot: [
-                { id: 'l1', name: 'Хронограф Patek Philippe', art: 'watch', price: 95000, rarity: 'epic', category: 'luxury', weight: 31 },
-                { id: 'l2', name: 'Чёрный ящик офшора', art: 'contraband_pack', price: 220000, rarity: 'contraband', category: 'art', isContraband: true, weight: 22 },
-                { id: 'l3', name: 'Ключи от Гелика G63 AMG', art: 'car_key', price: 330000, rarity: 'legendary', category: 'auto', weight: 21 },
-                { id: 'l4', name: 'Слиток Центробанка 1 кг', art: 'gold_bar', price: 520000, rarity: 'legendary', category: 'luxury', weight: 14 },
-                { id: 'l5', name: 'Алмаз «Сибирский рассвет»', art: 'diamond', price: 780000, rarity: 'ultra', category: 'luxury', weight: 8 },
-                { id: 'l6', name: 'Кошелёк Сатоши (15 BTC)', art: 'crypto_drive', price: 1050000, rarity: 'secret', category: 'tech', weight: 4 }
+                { id: 'l1', name: 'Хронограф Patek Philippe', art: 'watch', price: 295000, rarity: 'epic', category: 'luxury', weight: 36 },
+                { id: 'l3', name: 'Ключи от Гелика G63 AMG', art: 'car_key', price: 540000, rarity: 'legendary', category: 'auto', weight: 26 },
+                { id: 'l4', name: 'Слиток Центробанка 1 кг', art: 'gold_bar', price: 840000, rarity: 'legendary', category: 'luxury', weight: 17 },
+                { id: 'l2', name: 'Чёрный ящик офшора', art: 'contraband_pack', price: 980000, rarity: 'contraband', category: 'art', isContraband: true, weight: 7 },
+                { id: 'l5', name: 'Алмаз «Сибирский рассвет»', art: 'diamond', price: 1280000, rarity: 'ultra', category: 'luxury', weight: 9 },
+                { id: 'l6', name: 'Кошелёк Сатоши (15 BTC)', art: 'crypto_drive', price: 1680000, rarity: 'secret', category: 'tech', weight: 5 }
             ]
         },
         {
             id: 'case_ultra',
+            tier: 9,
+            cooldownSec: 16,
             name: 'Инкассаторский бронекейс',
             subtitle: 'Титановый спецконтейнер Гознака',
-            price: 600000,
+            price: 1900000,
             rarity: 'ultra',
-            rangeText: '140 000 – 3 400 000 ₽',
-            keyDropChance: 0.30,
+            rangeText: '620 000 – 5 800 000 ₽',
+            keyDropChance: 0.22,
             loot: [
-                { id: 'ul1', name: 'Облигации на предъявителя', art: 'bonds_doc', price: 210000, rarity: 'legendary', category: 'art', weight: 32 },
-                { id: 'ul2', name: 'Кейс с немаркированным евро', art: 'cash_pack', price: 420000, rarity: 'legendary', category: 'art', weight: 25 },
-                { id: 'ul3', name: 'Дипломатический груз «Диппочта»', art: 'contraband_pack', price: 680000, rarity: 'contraband', category: 'art', isContraband: true, weight: 18 },
-                { id: 'ul4', name: 'Прототип нейрочипа Embodied AI', art: 'neuro_chip', price: 980000, rarity: 'ultra', category: 'tech', weight: 13 },
-                { id: 'ul5', name: 'Тубус с якутскими алмазами', art: 'diamond', price: 1550000, rarity: 'ultra', category: 'luxury', weight: 8 },
-                { id: 'ul6', name: 'Спутниковый терминал спецсвязи', art: 'sat_terminal', price: 2300000, rarity: 'secret', category: 'tech', weight: 4 }
+                { id: 'ul1', name: 'Облигации на предъявителя', art: 'bonds_doc', price: 650000, rarity: 'legendary', category: 'art', weight: 36 },
+                { id: 'ul2', name: 'Кейс с немаркированным евро', art: 'cash_pack', price: 1180000, rarity: 'legendary', category: 'art', weight: 26 },
+                { id: 'ul4', name: 'Прототип нейрочипа Embodied AI', art: 'neuro_chip', price: 1850000, rarity: 'ultra', category: 'tech', weight: 18 },
+                { id: 'ul3', name: 'Дипломатический груз «Диппочта»', art: 'contraband_pack', price: 2200000, rarity: 'contraband', category: 'art', isContraband: true, weight: 7 },
+                { id: 'ul5', name: 'Тубус с якутскими алмазами', art: 'diamond', price: 2800000, rarity: 'ultra', category: 'luxury', weight: 8 },
+                { id: 'ul6', name: 'Спутниковый терминал спецсвязи', art: 'sat_terminal', price: 3650000, rarity: 'secret', category: 'tech', weight: 5 }
+            ]
+        },
+        // НОВЫЙ ТОП-ЧЕМОДАН №10: БУНКЕР ТЕНЕВИКА
+        {
+            id: 'case_bunker',
+            tier: 10,
+            cooldownSec: 18,
+            name: 'Бункер Теневика',
+            subtitle: 'Гермоконтейнер крипто-барона с Урала',
+            price: 4200000,
+            rarity: 'bunker',
+            rangeText: '1 400 000 – 12 500 000 ₽',
+            keyDropChance: 0.28,
+            loot: [
+                { id: 'bk1', name: 'Золотая бородка Максима 999 пробы', art: 'maxim_beard', price: 1450000, rarity: 'legendary', category: 'luxury', weight: 36 },
+                { id: 'bk2', name: 'Квантовый браток Максим v9.0', art: 'maxim_protok', price: 2650000, rarity: 'ultra', category: 'tech', weight: 26 },
+                { id: 'bk3', name: 'Холодное хранилище биржи (100 BTC)', art: 'crypto_drive', price: 4100000, rarity: 'bunker', category: 'tech', weight: 18 },
+                { id: 'bk4', name: 'Пломбированный контейнер «Зеро»', art: 'contraband_pack', price: 4900000, rarity: 'contraband', category: 'art', isContraband: true, weight: 7 },
+                { id: 'bk5', name: 'Реестр теневых банков Швейцарии', art: 'bonds_doc', price: 6200000, rarity: 'secret', category: 'art', weight: 8 },
+                { id: 'bk6', name: 'Личный вертолёт Airbus в ангаре', art: 'car_key', price: 8100000, rarity: 'secret', category: 'auto', weight: 5 }
             ]
         },
         {
             id: 'case_secret',
+            tier: 11,
+            cooldownSec: 20,
             name: 'Архив КГБ №0',
-            subtitle: 'Вскрывается за 1.5 млн ₽ или 3 Отмычками',
-            price: 1500000,
+            subtitle: 'Вскрывается за 8.5 млн ₽ или 3 Отмычками',
+            price: 8500000,
             rarity: 'secret',
-            rangeText: '380 000 – 9 500 000 ₽',
+            rangeText: '2 800 000 – 28 000 000 ₽',
             keyDropChance: 0,
             loot: [
-                { id: 's1', name: 'Ключи от Бронированного ЗИЛа', art: 'car_key', price: 480000, rarity: 'legendary', category: 'auto', weight: 33 },
-                { id: 's2', name: 'Кремлёвский бриллиант Фонда', art: 'diamond', price: 960000, rarity: 'ultra', category: 'luxury', weight: 26 },
-                { id: 's3', name: 'Секретный груз «Объект-77»', art: 'contraband_pack', price: 1850000, rarity: 'contraband', category: 'art', isContraband: true, weight: 18 },
-                { id: 's4', name: 'Квантовый дешифратор «Эльбрус»', art: 'neuro_chip', price: 2900000, rarity: 'secret', category: 'tech', weight: 11 },
-                { id: 's5', name: 'Золотой запас Империи', art: 'gold_bar', price: 4500000, rarity: 'secret', category: 'luxury', weight: 8 },
-                { id: 's6', name: 'Папка «Янтарная комната»', art: 'kgb_archive', price: 6500000, rarity: 'secret', category: 'art', weight: 4 }
+                { id: 's1', name: 'Ключи от Бронированного ЗИЛа', art: 'car_key', price: 2900000, rarity: 'legendary', category: 'auto', weight: 34 },
+                { id: 's2', name: 'Кремлёвский бриллиант Фонда', art: 'diamond', price: 4900000, rarity: 'ultra', category: 'luxury', weight: 26 },
+                { id: 's3', name: 'Секретный груз «Объект-77»', art: 'contraband_pack', price: 7400000, rarity: 'contraband', category: 'art', isContraband: true, weight: 17 },
+                { id: 's4', name: 'Квантовый дешифратор «Эльбрус»', art: 'neuro_chip', price: 11500000, rarity: 'secret', category: 'tech', weight: 11 },
+                { id: 's5', name: 'Золотой запас Империи', art: 'gold_bar', price: 16800000, rarity: 'secret', category: 'luxury', weight: 8 },
+                { id: 's6', name: 'Папка «Янтарная комната»', art: 'kgb_archive', price: 24500000, rarity: 'secret', category: 'art', weight: 4 }
             ]
         }
     ];
 
-    // Занёрфленный Таможенный конфискат: стоит 45 000 ₽, лимит 5 ящиков, есть таможенный шлак (сигареты, мониторы, кроссовки)
+    // Таможенный конфискат: 55 000 ₽, лимит 5 ящиков
     const RAID_CASE = {
         id: 'case_raid',
+        tier: 5,
+        cooldownSec: 10,
         name: 'Таможенный конфискат',
         subtitle: 'Риск: от просрочки до контрабанды (лимит 5 шт.)',
-        price: 45000,
+        price: 55000,
         rarity: 'legendary',
-        rangeText: '12 000 – 165 000 ₽',
+        rangeText: '18 000 – 185 000 ₽',
         keyDropChance: 0.08,
         loot: [
-            { id: 'rd1', name: 'Коробка отсыревших сигарет', art: 'cigs_box', price: 12000, rarity: 'common', category: 'art', weight: 30 },
-            { id: 'rd2', name: 'Разбитый монитор с пошлиной', art: 'smartphone', price: 18500, rarity: 'uncommon', category: 'tech', weight: 25 },
-            { id: 'rd3', name: 'Паллета китайских кроссовок', art: 'sneakers_box', price: 26000, rarity: 'yard', category: 'art', weight: 18 },
-            { id: 'rd4', name: 'Конфискованные диски BBS', art: 'rim', price: 48000, rarity: 'rare', category: 'auto', weight: 12 },
-            { id: 'rd5', name: 'Таможенный пломбир (Свёрток)', art: 'contraband_pack', price: 68000, rarity: 'contraband', category: 'art', isContraband: true, weight: 8 },
-            { id: 'rd6', name: 'Асик Antminer S21 без документов', art: 'gpu_rig', price: 95000, rarity: 'epic', category: 'tech', weight: 5 },
-            { id: 'rd7', name: 'Контрабандный Ролекс в кейсе', art: 'watch', price: 135000, rarity: 'legendary', category: 'luxury', weight: 2 }
+            { id: 'rd1', name: 'Коробка отсыревших сигарет', art: 'cigs_box', price: 18500, rarity: 'common', category: 'art', weight: 32 },
+            { id: 'rd2', name: 'Разбитый монитор с пошлиной', art: 'smartphone', price: 27000, rarity: 'uncommon', category: 'tech', weight: 26 },
+            { id: 'rd3', name: 'Паллета китайских кроссовок', art: 'sneakers_box', price: 39000, rarity: 'yard', category: 'art', weight: 18 },
+            { id: 'rd4', name: 'Конфискованная бородка Максима', art: 'maxim_beard', price: 58000, rarity: 'rare', category: 'luxury', weight: 11 },
+            { id: 'rd5', name: 'Таможенный пломбир (Свёрток)', art: 'contraband_pack', price: 72000, rarity: 'contraband', category: 'art', isContraband: true, weight: 6 },
+            { id: 'rd6', name: 'Асик Antminer S21 без документов', art: 'gpu_rig', price: 98000, rarity: 'epic', category: 'tech', weight: 5 },
+            { id: 'rd7', name: 'Контрабандный Ролекс в кейсе', art: 'watch', price: 140000, rarity: 'legendary', category: 'luxury', weight: 2 }
         ]
     };
 
     const ALL_ITEMS = CASES.flatMap(c => c.loot).filter(i => !i.isContraband).sort((a, b) => a.price - b.price);
 
-    // Масти перекупов (Ослабленный тап от 12 до 55 ₽)
+    // Масти перекупов
     const LEAGUES = [
-        { name: 'Сборщик картона', min: 0, clickBonus: 12 },
-        { name: 'Вокзальный челночник', min: 25000, clickBonus: 18 },
-        { name: 'Перекуп с Авито', min: 100000, clickBonus: 26 },
-        { name: 'Хозяин разборки', min: 350000, clickBonus: 36 },
-        { name: 'Держатель ломбарда', min: 1000000, clickBonus: 45 },
-        { name: 'Теневой Решала', min: 5000000, clickBonus: 55 }
+        { name: 'Сборщик картона', min: 0, clickBonus: 14 },
+        { name: 'Вокзальный челночник', min: 35000, clickBonus: 22 },
+        { name: 'Перекуп с Авито', min: 150000, clickBonus: 32 },
+        { name: 'Хозяин разборки', min: 600000, clickBonus: 45 },
+        { name: 'Держатель ломбарда', min: 2500000, clickBonus: 65 },
+        { name: 'Теневой Решала', min: 12000000, clickBonus: 95 }
     ];
 
     /********************************************************************
-     * 4. СОСТОЯНИЕ ИГРЫ И СОХРАНЕНИЕ В LOCALSTORAGE + CLOUD SYNC
+     * 4. СОСТОЯНИЕ ИГРЫ И СОХРАНЕНИЕ В LOCALSTORAGE + FIREBASE SYNC
      ********************************************************************/
     const STORAGE_KEY = 'otstoynik_tycoon_v3_save';
 
@@ -1425,6 +1567,8 @@
         stamina: 100,
         scrapReadyAt: 0,
         freeCaseReadyAt: 0,
+        caseCooldownUntil: 0,
+        pityCounter: 0,
         referrals: 0,
         godMode: false,
         raidBoxesLeft: 5,
@@ -1461,6 +1605,8 @@
                 };
                 if (!state.playerName) state.playerName = defaultPlayerName;
                 if (state.raidBoxesLeft > 5) state.raidBoxesLeft = 5;
+                if (typeof state.pityCounter !== 'number') state.pityCounter = 0;
+                if (typeof state.caseCooldownUntil !== 'number') state.caseCooldownUntil = 0;
             } else {
                 generateNewMarketRates();
             }
@@ -1492,11 +1638,6 @@
         renderLeaderboard();
     };
 
-    window.pushCloudLiveDrop = function(text) {
-        const ticker = document.getElementById('live-drop-ticker');
-        if (ticker && text) ticker.textContent = text;
-    };
-
     function formatMoney(num) {
         return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + ' ₽';
     }
@@ -1507,11 +1648,11 @@
     function generateNewMarketRates() {
         const keys = Object.keys(CATEGORIES);
         keys.forEach(k => {
-            const steps = [0.75, 0.85, 0.95, 1.0, 1.1, 1.25, 1.4];
+            const steps = [0.75, 0.85, 0.95, 1.0, 1.1, 1.25, 1.35];
             state.marketRates[k] = steps[Math.floor(Math.random() * steps.length)];
         });
         const hotKey = keys[Math.floor(Math.random() * keys.length)];
-        state.marketRates[hotKey] = 1.45;
+        state.marketRates[hotKey] = 1.40;
         state.marketNextUpdate = Date.now() + 120000;
         saveState();
         renderMarketUI();
@@ -1539,7 +1680,7 @@
             active: true,
             category: pickedCat,
             expiresAt: Date.now() + 60000,
-            nextCallAt: Date.now() + 260000 // Следующий звонок через ~4.3 минуты
+            nextCallAt: Date.now() + 260000
         };
         playSound('ring');
         triggerHaptic('warning');
@@ -1570,11 +1711,11 @@
         }
     }
 
-    // Итоговая цена предмета с учетом Float + Ашота ИЛИ Михалыча
+    // Итоговая цена предмета с учетом Float + Ашота (Контрабанда у Ашота теперь 30%)
     function getItemSellPrice(item) {
         const baseWithFloat = Math.round(item.price * (item.floatMult || 1));
         if (item.isContraband) {
-            return Math.round(baseWithFloat * 0.4); // Ашот берет контрабанду только за 40%
+            return Math.round(baseWithFloat * 0.30); // Понерфленная тихая сдача Ашоту (30%)
         }
         if (state.mihalych.active && Date.now() < state.mihalych.expiresAt && item.category === state.mihalych.category) {
             return Math.round(baseWithFloat * 2.2);
@@ -1612,7 +1753,7 @@
     }
 
     /********************************************************************
-     * 6. ОБНОВЛЕНИЕ ШАПКИ, РЕЙТИНГА БРАТВЫ И LIVE-ЛЕНТЫ
+     * 6. ОБНОВЛЕНИЕ ШАПКИ И 100% РЕАЛЬНОЙ ТАБЛИЦЫ ЛИДЕРОВ FIREBASE
      ********************************************************************/
     function getNetWorth() {
         const invVal = state.inventory.reduce((sum, i) => sum + Math.round(i.price * (i.floatMult || 1)), 0);
@@ -1637,12 +1778,15 @@
         const league = getCurrentLeague();
         document.getElementById('player-rank').textContent = league.name;
         document.getElementById('click-power').textContent = league.clickBonus;
-        document.getElementById('rank-avatar').innerHTML = getItemSVG('wrench');
+        document.getElementById('rank-avatar').innerHTML = getItemSVG('maxim_beard');
 
         document.getElementById('stamina-current').textContent = state.stamina;
         document.getElementById('stamina-bar').style.width = `${state.stamina}%`;
         document.getElementById('ref-count').textContent = state.referrals;
-        document.getElementById('ref-link-input').value = `https://t.me/otstoynik_bot?start=ref_${tgUserId}`;
+        document.getElementById('ref-link-input').value = `https://t.me/otstoynik_loot_bot?start=ref_${tgUserId}`;
+
+        const pityPill = document.getElementById('pity-status-pill');
+        if (pityPill) pityPill.textContent = `Фарт: ${state.pityCounter}/5`;
 
         const badge = document.getElementById('nav-inv-badge');
         if (state.inventory.length > 0) {
@@ -1665,19 +1809,11 @@
         const myNetWorth = getNetWorth();
         const myName = state.playerName || defaultPlayerName;
 
-        // Базовые NPC-соперники района + Все реальные друзья из облака Firestore!
-        const baseRivals = [
-            { id: 'npc_1', name: 'Седой (Хозяин рынка)', netWorth: 2450000, rank: 'Теневой Решала', isNpc: true },
-            { id: 'npc_2', name: 'Артём_Б (Кооператив)', netWorth: 680000, rank: 'Хозяин разборки', isNpc: true },
-            { id: 'npc_3', name: 'Серёга (Гранта 2012)', netWorth: 145000, rank: 'Перекуп с Авито', isNpc: true },
-            { id: 'npc_4', name: 'Лёха_Катализатор', netWorth: 42000, rank: 'Вокзальный челночник', isNpc: true }
-        ];
-
+        // Никаких фейковых ботов — только реальные игроки из вашей базы Firebase!
         const combinedMap = new Map();
-        baseRivals.forEach(r => combinedMap.set(r.id, r));
 
-        // Добавляем всех друзей и игроков, зашедших в игру
         cloudPlayersList.forEach(p => {
+            if (!p || !p.name) return;
             const pid = String(p.tgId || p.id);
             combinedMap.set(pid, {
                 id: pid,
@@ -1685,23 +1821,21 @@
                 netWorth: Number(p.netWorth || p.balance || 0),
                 rank: p.rank || 'Перекуп',
                 casesOpened: p.casesOpened || 0,
-                isMe: pid === String(tgUserId),
-                isRealPlayer: true
+                isMe: pid === String(tgUserId)
             });
         });
 
-        // Гарантируем актуальные данные текущего игрока
+        // Всегда обновляем свою строчку актуальными данными
         combinedMap.set(String(tgUserId), {
             id: String(tgUserId),
             name: myName,
             netWorth: myNetWorth,
             rank: getCurrentLeague().name,
             casesOpened: state.stats.casesOpened,
-            isMe: true,
-            isRealPlayer: true
+            isMe: true
         });
 
-        const sorted = Array.from(combinedMap.values()).sort((a, b) => b.netWorth - a.netWorth);
+        const sorted = Array.from(combinedMap.values()).sort((a, b) => b.netWorth - a.netWorth).slice(0, 30);
 
         document.getElementById('leaderboard-list').innerHTML = sorted.map((r, idx) => `
             <div class="flex items-center justify-between p-2.5 rounded-lg border font-mono-tech text-xs ${r.isMe ? 'bg-amber-500/15 border-amber-500 text-white' : 'bg-[#0b0d0e] border-[#22272e] text-slate-300'}">
@@ -1710,9 +1844,9 @@
                     <div class="truncate">
                         <div class="font-bold truncate flex items-center gap-1.5">
                             <span>${r.name}</span>
-                            ${r.isRealPlayer ? '<span class="px-1 py-0.2 text-[8px] rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">ИГРОК</span>' : ''}
+                            <span class="px-1 py-0.2 text-[8px] rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">LIVE</span>
                         </div>
-                        <div class="text-[10px] text-slate-400">${r.rank}</div>
+                        <div class="text-[10px] text-slate-400">${r.rank} • Ящиков: ${r.casesOpened || 0}</div>
                     </div>
                 </div>
                 <span class="font-extrabold text-emerald-400 shrink-0 ml-2">${formatMoney(r.netWorth)}</span>
@@ -1733,20 +1867,8 @@
         }).join('');
     }
 
-    // Симуляция живой ленты улова наверху экрана
-    const LIVE_NICKS = ['@serega_granta', '@artem_lip', '@kolyan_99', '@garik_avto', '@perekup_48', '@tema_b', '@max_bariga'];
-    function rotateLiveDropTicker() {
-        const nick = LIVE_NICKS[Math.floor(Math.random() * LIVE_NICKS.length)];
-        const randomCase = CASES[Math.floor(Math.random() * CASES.length)];
-        const randomItem = randomCase.loot[Math.floor(Math.random() * randomCase.loot.length)];
-        const fl = FLOAT_CONDITIONS[Math.floor(Math.random() * FLOAT_CONDITIONS.length)];
-        const finalPrice = Math.round(randomItem.price * fl.mult);
-        const ticker = document.getElementById('live-drop-ticker');
-        ticker.textContent = `${nick} вскрыл «${randomCase.name}» → ${randomItem.name} (${fl.name}) за ${formatMoney(finalPrice)}`;
-    }
-
     /********************************************************************
-     * 7. ОТСТОЙНИК (МАГАЗИН ЧЕМОДАНОВ), FLOAT И ВЗЛОМ СЕКРЕТНОГО ЗАМКА
+     * 7. ОТСТОЙНИК (11 ЧЕМОДАНОВ), ПЕРЕЗАРЯДКА, PITY-ФАРТ И ВЗЛОМ ЗАМКА
      ********************************************************************/
     let activeCase = null;
     let isSpinning = false;
@@ -1758,7 +1880,7 @@
 
         const grid = document.getElementById('cases-grid');
         grid.innerHTML = CASES.map(c => {
-            const r = RARITIES[c.rarity];
+            const r = RARITIES[c.rarity] || RARITIES.common;
             const canUseKeys = c.id === 'case_secret' && state.secretKeys >= 3;
             return `
                 <div onclick="openCaseModal('${c.id}')" class="${r.css} ${r.glow} border-2 rounded-xl p-3 flex flex-col justify-between cursor-pointer transition hover:border-amber-400 btn-active">
@@ -1766,7 +1888,7 @@
                         <span class="text-[9px] font-mono-tech font-extrabold uppercase px-1.5 py-0.5 rounded ${r.badge} text-white">
                             ${r.name}
                         </span>
-                        ${c.keyDropChance > 0 ? `<span class="text-[10px] font-mono-tech text-amber-300 font-bold" title="Шанс выбить отмычку">🔑 ${Math.round(c.keyDropChance*100)}%</span>` : ''}
+                        <span class="text-[9px] font-mono-tech text-slate-400">⏱ ${c.cooldownSec}с</span>
                     </div>
 
                     <div class="my-2.5 flex flex-col items-center text-center">
@@ -1808,7 +1930,8 @@
         document.getElementById('modal-case-icon').innerHTML = getCaseSVG(activeCase.id);
         document.getElementById('modal-big-svg').innerHTML = getCaseSVG(activeCase.id);
         document.getElementById('modal-case-title').textContent = activeCase.name;
-        document.getElementById('modal-case-range').textContent = `Разброс оценки: ${activeCase.rangeText}`;
+        document.getElementById('modal-case-range').textContent = `Разброс: ${activeCase.rangeText} • Остывание: ${activeCase.cooldownSec}с`;
+        document.getElementById('pity-status-pill').textContent = `Фарт: ${state.pityCounter}/5`;
 
         document.getElementById('case-showcase').classList.remove('hidden');
         document.getElementById('lockpick-game-wrapper').classList.add('hidden');
@@ -1816,7 +1939,7 @@
         document.getElementById('won-item-card').classList.add('hidden');
         document.getElementById('case-open-controls').classList.remove('hidden');
 
-        document.getElementById('open-case-btn').textContent = `Вскрыть монтировкой за ${formatMoney(activeCase.price)}`;
+        updateModalOpenButtonState();
 
         const keyBtn = document.getElementById('open-with-keys-btn');
         if (activeCase.id === 'case_secret') {
@@ -1830,7 +1953,7 @@
 
         const totalWeight = activeCase.loot.reduce((acc, i) => acc + i.weight, 0);
         document.getElementById('modal-loot-list').innerHTML = activeCase.loot.map(item => {
-            const r = RARITIES[item.rarity];
+            const r = RARITIES[item.rarity] || RARITIES.common;
             const chance = ((item.weight / totalWeight) * 100).toFixed(0);
             return `
                 <div class="${r.css} border rounded-lg p-2 text-center flex flex-col justify-between">
@@ -1848,6 +1971,20 @@
         document.getElementById('case-modal').classList.remove('hidden');
     }
 
+    function updateModalOpenButtonState() {
+        const btn = document.getElementById('open-case-btn');
+        if (!btn || !activeCase) return;
+        const leftMs = state.caseCooldownUntil - Date.now();
+        if (leftMs > 0) {
+            const sec = Math.ceil(leftMs / 1000);
+            btn.textContent = `Остывание замка: ${sec} сек. (Сбей в Халтурке!)`;
+            btn.classList.add('opacity-50');
+        } else {
+            btn.textContent = `Вскрыть монтировкой за ${formatMoney(activeCase.price)}`;
+            btn.classList.remove('opacity-50');
+        }
+    }
+
     function closeCaseModal() {
         if (isSpinning) return;
         stopLockpickLoop();
@@ -1857,8 +1994,8 @@
     }
 
     function rollFloatCondition(isRaid = false) {
-        if (state.godMode) return FLOAT_CONDITIONS[2]; // В плёнке (x1.5)
-        if (isRaid && Math.random() < 0.20) return FLOAT_CONDITIONS[2]; // Занёрфленный шанс плёнки на таможне (20%)
+        if (state.godMode) return FLOAT_CONDITIONS[2];
+        if (isRaid && Math.random() < 0.18) return FLOAT_CONDITIONS[2];
         const total = FLOAT_CONDITIONS.reduce((s, f) => s + f.weight, 0);
         let r = Math.random() * total;
         for (const f of FLOAT_CONDITIONS) {
@@ -1868,20 +2005,38 @@
         return FLOAT_CONDITIONS[1];
     }
 
-    function rollItemFromCase(caseObj) {
+    function rollItemFromCase(caseObj, applyPity = false) {
         let baseItem;
         if (state.godMode) {
             baseItem = caseObj.loot[caseObj.loot.length - 1];
+        } else if (applyPity && state.pityCounter >= 5) {
+            // Сработал Гарант Фарта: выбираем только окупаемые лоты (верхняя половина списка)
+            const profitablePool = caseObj.loot.filter(i => i.price >= caseObj.price * 0.95);
+            const pool = profitablePool.length > 0 ? profitablePool : caseObj.loot.slice(-2);
+            baseItem = pool[Math.floor(Math.random() * pool.length)];
         } else {
-            const totalWeight = caseObj.loot.reduce((sum, item) => sum + item.weight, 0);
+            // На высоких тирах (tier >= 5) вес дорогих вещей чуть строже, чтобы прогресс в мид/лейтгейме был азартнее и сложнее
+            const isHardTier = (caseObj.tier || 1) >= 5;
+            const adjustedLoot = caseObj.loot.map(item => {
+                let w = item.weight;
+                if (isHardTier && item.price > caseObj.price) {
+                    w = w * 0.78; // Усложнение окупа на высоких рангах
+                }
+                if (applyPity && state.pityCounter >= 3 && item.price >= caseObj.price) {
+                    w = w * 1.25; // Легкий буст при 3 минусах подряд
+                }
+                return { item, w };
+            });
+
+            const totalWeight = adjustedLoot.reduce((sum, entry) => sum + entry.w, 0);
             let rand = Math.random() * totalWeight;
-            baseItem = caseObj.loot[0];
-            for (const item of caseObj.loot) {
-                if (rand < item.weight) {
-                    baseItem = item;
+            baseItem = adjustedLoot[0].item;
+            for (const entry of adjustedLoot) {
+                if (rand < entry.w) {
+                    baseItem = entry.item;
                     break;
                 }
-                rand -= item.weight;
+                rand -= entry.w;
             }
         }
         const fl = rollFloatCondition(caseObj.id === 'case_raid');
@@ -1917,7 +2072,7 @@
 
     function setupLockpickTarget() {
         document.getElementById('lockpick-stage-text').textContent = `Штифт: ${lockpickStage} / 3`;
-        targetStartAngle = Math.floor(Math.random() * 240) + 40; // 40..280 deg
+        targetStartAngle = Math.floor(Math.random() * 240) + 40;
         const arc = document.getElementById('lockpick-target-arc');
         arc.setAttribute('transform', `rotate(${targetStartAngle - 90} 60 60)`);
     }
@@ -1937,7 +2092,6 @@
     }
 
     function triggerLockpickHit() {
-        // Сектор 45 из 314 длины окружности = ~51 градус ширины
         const sectorWidth = 52;
         const diff = (needleAngle - targetStartAngle + 360) % 360;
 
@@ -1967,6 +2121,15 @@
     function startCaseOpening(useKeys = false) {
         if (isSpinning || !activeCase) return;
 
+        // Проверка перезарядки чемоданов
+        const now = Date.now();
+        if (now < state.caseCooldownUntil) {
+            const waitSec = Math.ceil((state.caseCooldownUntil - now) / 1000);
+            playSound('clank');
+            showToast(`Замок остывает ещё ${waitSec} сек.! Потаскай мешки в Халтурке, чтобы сбить таймер.`, 'error');
+            return;
+        }
+
         if (activeCase.id === 'case_raid') {
             if (state.raidBoxesLeft <= 0) {
                 showToast('Конфискат закончился!', 'error');
@@ -1980,6 +2143,7 @@
                 return;
             }
             state.secretKeys -= 3;
+            state.caseCooldownUntil = Date.now() + (activeCase.cooldownSec || 10) * 1000;
             updateHeaderUI();
             startLockpickMiniGame();
             return;
@@ -1991,6 +2155,7 @@
                 return;
             }
             state.balance -= activeCase.price;
+            state.caseCooldownUntil = Date.now() + (activeCase.cooldownSec || 8) * 1000;
             if (activeCase.id === 'case_raid') {
                 state.raidBoxesLeft -= 1;
                 updateRaidBannerUI();
@@ -2002,8 +2167,19 @@
 
     function proceedCaseSpin() {
         state.stats.casesOpened += 1;
-        const wonItem = rollItemFromCase(activeCase);
+        const wonItem = rollItemFromCase(activeCase, true);
         lastWonItem = wonItem;
+
+        // Обновляем счетчик Фарта (Pity-таймер)
+        const effectiveDropVal = Math.round(wonItem.price * (wonItem.floatMult || 1));
+        if (effectiveDropVal < activeCase.price) {
+            state.pityCounter = Math.min(5, (state.pityCounter || 0) + 1);
+        } else {
+            if (state.pityCounter >= 5) {
+                showToast('Сработал Гарант Фарта! Чемодан выплюнул жирный куш!', 'success');
+            }
+            state.pityCounter = 0;
+        }
 
         let droppedKey = false;
         if (activeCase.keyDropChance > 0 && (state.godMode || Math.random() < activeCase.keyDropChance)) {
@@ -2012,6 +2188,7 @@
         }
 
         updateHeaderUI();
+        updateModalOpenButtonState();
 
         if (document.getElementById('fast-open-toggle').checked) {
             revealWonItem(wonItem, droppedKey);
@@ -2033,8 +2210,8 @@
         const cardsHTML = [];
 
         for (let i = 0; i < TOTAL_CARDS; i++) {
-            const item = (i === WIN_INDEX) ? wonItem : rollItemFromCase(activeCase);
-            const r = RARITIES[item.rarity];
+            const item = (i === WIN_INDEX) ? wonItem : rollItemFromCase(activeCase, false);
+            const r = RARITIES[item.rarity] || RARITIES.common;
             cardsHTML.push(`
                 <div class="roulette-item ${r.css}">
                     <span class="text-[8px] font-mono-tech uppercase px-1 rounded bg-black/50 text-slate-300">${item.floatName}</span>
@@ -2050,7 +2227,7 @@
         track.innerHTML = cardsHTML.join('');
 
         const viewportWidth = wrapper.querySelector('.roulette-viewport').clientWidth;
-        const cardWidth = 120; // 110px + 10px margin
+        const cardWidth = 120;
         const jitter = (Math.random() - 0.5) * 55;
         const targetOffset = (WIN_INDEX * cardWidth) + (cardWidth / 2) - (viewportWidth / 2) + jitter;
 
@@ -2089,15 +2266,15 @@
         updateHeaderUI();
         renderInventory();
 
-        // Если выпал дорогой предмет (от 25 000 ₽) — транслируем всем друзьям в верхний эфир!
-        if (effectiveValue >= 25000 && window.publishDropToFirestore) {
+        // Транслируем любой дроп от 15 000 ₽ в реальный эфир Firebase для всех друзей!
+        if (effectiveValue >= 15000 && window.publishDropToFirestore) {
             const myName = state.playerName || defaultPlayerName;
             const feedMsg = `${myName} вскрыл «${activeCase ? activeCase.name : 'Ящик'}» → ${item.name} (${item.floatName}) за ${formatMoney(effectiveValue)}`;
             window.publishDropToFirestore(feedMsg);
         }
 
-        const r = RARITIES[item.rarity];
-        if (['legendary', 'secret', 'contraband'].includes(item.rarity)) {
+        const r = RARITIES[item.rarity] || RARITIES.common;
+        if (['legendary', 'ultra', 'bunker', 'secret', 'contraband'].includes(item.rarity)) {
             playSound('jackpot');
             triggerHaptic('success');
         } else {
@@ -2126,7 +2303,7 @@
 
         const sellPrice = getItemSellPrice(item);
         document.getElementById('sell-won-btn').textContent = item.isContraband
-            ? `Ашоту (40%): ${formatMoney(sellPrice)}`
+            ? `Ашоту (30%): ${formatMoney(sellPrice)}`
             : `Слить за ${formatMoney(sellPrice)}`;
 
         document.getElementById('won-key-bonus').classList.toggle('hidden', !droppedKey);
@@ -2156,7 +2333,7 @@
     }
 
     /********************************************************************
-     * 8. БАГАЖНИК, СБЫТ КОНТРАБАНДЫ В DARKNET (x3 ИЛИ ОБЛАВА)
+     * 8. БАГАЖНИК, ОПТОВАЯ ГАЗЕЛЬ И МИНИ-ИГРА РАДАРА КОНТРАБАНДЫ DARKNET
      ********************************************************************/
     let currentInvFilter = 'all';
 
@@ -2190,7 +2367,7 @@
         } else if (currentInvFilter === 'common') {
             filtered = state.inventory.filter(i => i.rarity === 'common' || i.rarity === 'uncommon');
         } else if (currentInvFilter === 'rare') {
-            filtered = state.inventory.filter(i => ['rare', 'epic', 'legendary', 'secret'].includes(i.rarity));
+            filtered = state.inventory.filter(i => ['rare', 'criminal', 'syndicate', 'epic', 'legendary', 'ultra', 'bunker', 'secret'].includes(i.rarity));
         }
 
         if (filtered.length === 0) {
@@ -2212,7 +2389,7 @@
             const isMihalychMatch = !item.isContraband && state.mihalych.active && Date.now() < state.mihalych.expiresAt && item.category === state.mihalych.category;
 
             if (item.isContraband) {
-                const darknetPrice = Math.round(baseFloatPrice * 3.0);
+                const maxDarknetPrice = Math.round(baseFloatPrice * 2.15);
                 return `
                     <div class="${r.css} border-2 rounded-xl p-2.5 flex flex-col justify-between">
                         <div class="flex items-center justify-between">
@@ -2225,11 +2402,11 @@
                             <div class="text-[10px] font-mono-tech text-slate-300">Номинал: ${formatMoney(baseFloatPrice)}</div>
                         </div>
                         <div class="space-y-1.5">
-                            <button onclick="sellContrabandDarknet('${item.uid}')" class="w-full py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-mono-tech font-black text-[10px] uppercase btn-active">
-                                DarkNet x3: ${formatMoney(darknetPrice)}
+                            <button onclick="openDarknetMinigame('${item.uid}')" class="w-full py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-mono-tech font-black text-[10px] uppercase btn-active shadow">
+                                Радар DarkNet (до ${formatMoney(maxDarknetPrice)})
                             </button>
                             <button onclick="sellSingleItem('${item.uid}')" class="w-full py-1 rounded-lg bg-[#0b0d0e] border border-slate-700 text-slate-300 font-mono-tech font-bold text-[10px] btn-active">
-                                Тихо Ашоту (40%): ${formatMoney(sellPrice)}
+                                Тихо Ашоту (30%): ${formatMoney(sellPrice)}
                             </button>
                         </div>
                     </div>
@@ -2270,30 +2447,113 @@
         renderInventory();
     }
 
-    // Продажа контрабанды через DarkNet (75% шанс получить x3, 25% шанс облавы)
-    function sellContrabandDarknet(uid) {
-        const idx = state.inventory.findIndex(i => i.uid === uid);
-        if (idx === -1) return;
+    // ОПТОВЫЙ БАРЫГА НА ГАЗЕЛИ: сдать 3 ширпотребных предмета с бонусом +25%
+    function sellWholesaleBundle() {
+        const lowTier = state.inventory.filter(i => !i.isContraband && ['common', 'uncommon', 'yard'].includes(i.rarity));
+        if (lowTier.length < 3) {
+            showToast('Нужно минимум 3 простых предмета (Ширпотреб / Добротный / Дворовый)!', 'error');
+            return;
+        }
+        const picked = lowTier.slice(0, 3);
+        const pickedUids = picked.map(i => i.uid);
+        const baseSum = picked.reduce((acc, it) => acc + getItemSellPrice(it), 0);
+        const bonusTotal = Math.round(baseSum * 1.25);
+
+        state.inventory = state.inventory.filter(i => !pickedUids.includes(i.uid));
+        state.balance += bonusTotal;
+
+        playSound('jackpot');
+        triggerHaptic('success');
+        showToast(`Оптом на Газель ушло 3 шт. за ${formatMoney(bonusTotal)} (Бонус +25%)!`, 'success');
+        updateHeaderUI();
+        renderInventory();
+    }
+
+    // МИНИ-ИГРА РАДАРА DARKNET ДЛЯ КОНТРАБАНДЫ
+    let activeDarknetUid = null;
+    let dnAnimId = null;
+    let dnPos = 50;
+    let dnDir = 1;
+    let dnSpeed = 1.65;
+
+    function openDarknetMinigame(uid) {
+        const item = state.inventory.find(i => i.uid === uid);
+        if (!item) return;
+        activeDarknetUid = uid;
+        const baseFloatPrice = Math.round(item.price * (item.floatMult || 1));
+
+        document.getElementById('dn-item-svg').innerHTML = getItemSVG(item.art);
+        document.getElementById('dn-item-name').textContent = item.name;
+        document.getElementById('dn-item-base').textContent = `Номинал: ${formatMoney(baseFloatPrice)}`;
+
+        dnPos = 10;
+        dnDir = 1;
+        dnSpeed = 1.7 + Math.min(1.2, baseFloatPrice / 500000); // Чем дороже груз, тем быстрее сканер!
+        document.getElementById('darknet-modal').classList.remove('hidden');
+        runDarknetRadarLoop();
+    }
+
+    function runDarknetRadarLoop() {
+        dnPos += dnDir * dnSpeed;
+        if (dnPos >= 98) {
+            dnPos = 98;
+            dnDir = -1;
+        } else if (dnPos <= 2) {
+            dnPos = 2;
+            dnDir = 1;
+        }
+        const cur = document.getElementById('dn-cursor');
+        if (cur) cur.style.left = `${dnPos}%`;
+        dnAnimId = requestAnimationFrame(runDarknetRadarLoop);
+    }
+
+    function closeDarknetModal() {
+        if (dnAnimId) {
+            cancelAnimationFrame(dnAnimId);
+            dnAnimId = null;
+        }
+        activeDarknetUid = null;
+        document.getElementById('darknet-modal').classList.add('hidden');
+    }
+
+    function lockDarknetDrop() {
+        if (!activeDarknetUid) return;
+        const idx = state.inventory.findIndex(i => i.uid === activeDarknetUid);
+        if (idx === -1) {
+            closeDarknetModal();
+            return;
+        }
         const item = state.inventory[idx];
         const baseFloatPrice = Math.round(item.price * (item.floatMult || 1));
+        const stoppedAt = dnPos;
+
+        closeDarknetModal();
         state.inventory.splice(idx, 1);
 
-        const isSuccess = state.godMode || Math.random() < 0.75;
-        if (isSuccess) {
-            const reward = Math.round(baseFloatPrice * 3.0);
+        // Зеленый сектор: 44..56% (x2.15), Желтый: 34..44% и 56..66% (x1.45), иначе Облава!
+        if (state.godMode || (stoppedAt >= 44 && stoppedAt <= 56)) {
+            const reward = Math.round(baseFloatPrice * 2.15);
             state.balance += reward;
             state.stats.darknetSold += 1;
             if (reward > state.stats.bestDrop) state.stats.bestDrop = reward;
             playSound('jackpot');
             triggerHaptic('success');
-            showToast(`DarkNet сделка прошла! На счет упало ${formatMoney(reward)} (x3)!`, 'success');
+            showToast(`Чистый сброс в тайник! Получено ${formatMoney(reward)} (x2.15)!`, 'success');
+        } else if (stoppedAt >= 34 && stoppedAt <= 66) {
+            const reward = Math.round(baseFloatPrice * 1.45);
+            state.balance += reward;
+            state.stats.darknetSold += 1;
+            playSound('win');
+            triggerHaptic('medium');
+            showToast(`Сброс через посредника! Выручено ${formatMoney(reward)} (x1.45).`, 'info');
         } else {
-            const fine = Math.round(state.balance * 0.10);
+            const fine = Math.round(state.balance * 0.15);
             state.balance = Math.max(0, state.balance - fine);
             playSound('siren');
             triggerHaptic('error');
-            showToast(`ОБЛАВА НА ТАЙНИК! Свёрток изъят, штраф на лапу: −${formatMoney(fine)}`, 'error');
+            showToast(`НАКРЫЛ ПАТРУЛЬ! Контрабанда изъята, штраф: −${formatMoney(fine)}`, 'error');
         }
+
         updateHeaderUI();
         renderInventory();
     }
@@ -2323,7 +2583,7 @@
     let wheelRotation = 0;
     let isUpgrading = false;
 
-    const MULTIPLIER_CHANCES = { 1.5: 60, 2: 45, 5: 18, 10: 9 };
+    const MULTIPLIER_CHANCES = { 1.5: 55, 2: 40, 5: 15, 10: 7 };
 
     function switchCraftMode(mode) {
         const upgView = document.getElementById('craft-upgrader-view');
@@ -2377,7 +2637,7 @@
                 best = item;
             }
         }
-        const fl = FLOAT_CONDITIONS[1]; // Б/У Рабочий
+        const fl = FLOAT_CONDITIONS[1];
         return {
             ...best,
             price: Math.round(desiredPrice),
@@ -2549,7 +2809,7 @@
 
         document.getElementById('contract-sum').textContent = formatMoney(totalInput);
         document.getElementById('contract-range').textContent = totalInput > 0
-            ? `${formatMoney(totalInput * 0.7)} – ${formatMoney(totalInput * 1.75)}`
+            ? `${formatMoney(totalInput * 0.65)} – ${formatMoney(totalInput * 1.60)}`
             : '0 – 0 ₽';
 
         document.getElementById('run-contract-btn').disabled = contractSelectedUids.length < 3;
@@ -2581,7 +2841,7 @@
         state.inventory = state.inventory.filter(i => !contractSelectedUids.includes(i.uid));
         contractSelectedUids = [];
 
-        const mult = state.godMode ? 1.75 : (0.7 + Math.random() * 1.05);
+        const mult = state.godMode ? 1.60 : (0.65 + Math.random() * 0.95);
         const crafted = getTargetUpgradeItem(totalInput, mult);
         crafted.uid = Date.now() + '_con';
 
@@ -2598,7 +2858,7 @@
     }
 
     /********************************************************************
-     * 10. ОСЛАБЛЕННАЯ ХАЛТУРКА (ЭНЕРГИЯ), ЦВЕТМЕТ И РЕФЕРАЛКА
+     * 10. ХАЛТУРКА (ЭНЕРГИЯ + СБИТИЕ ПЕРЕЗАРЯДКИ КЕЙСОВ), ЦВЕТМЕТ И РЕФЕРАЛКА
      ********************************************************************/
     function doSideHustle(e) {
         if (state.stamina < 2) {
@@ -2608,19 +2868,31 @@
         }
         state.stamina = Math.max(0, state.stamina - 2);
         const league = getCurrentLeague();
-        const reward = league.clickBonus; // 12..55 ₽
+        const reward = league.clickBonus;
         state.balance += reward;
+
+        // Каждый тап срезает 1.5 секунды с перезарядки чемодана и ящика с перрона!
+        const now = Date.now();
+        let shaved = false;
+        if (state.caseCooldownUntil > now) {
+            state.caseCooldownUntil = Math.max(now, state.caseCooldownUntil - 1500);
+            shaved = true;
+        }
+        if (state.freeCaseReadyAt > now) {
+            state.freeCaseReadyAt = Math.max(now, state.freeCaseReadyAt - 1500);
+        }
 
         playSound('tick');
         triggerHaptic('light');
         updateHeaderUI();
+        updateTimers();
 
         const el = document.createElement('div');
-        el.className = 'float-money text-sm';
-        el.textContent = `+${reward} ₽`;
+        el.className = 'float-money text-xs';
+        el.textContent = shaved ? `+${reward} ₽ (-1.5с)` : `+${reward} ₽`;
         const x = e.clientX || (window.innerWidth / 2);
         const y = e.clientY || (window.innerHeight / 2);
-        el.style.left = `${x - 24}px`;
+        el.style.left = `${x - 28}px`;
         el.style.top = `${y - 20}px`;
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 850);
@@ -2634,7 +2906,7 @@
             return;
         }
         state.balance += 850;
-        state.scrapReadyAt = now + 180000; // 3 минуты кулдаун
+        state.scrapReadyAt = now + 180000;
         playSound('coin');
         triggerHaptic('success');
         showToast('Сдал бухту медного кабеля за +850 ₽!', 'success');
@@ -2646,15 +2918,15 @@
         const now = Date.now();
         if (now < state.freeCaseReadyAt) {
             const left = Math.ceil((state.freeCaseReadyAt - now) / 1000);
-            showToast(`Следующий поезд через ${left} сек.!`, 'info');
+            showToast(`Следующий поезд через ${left} сек.! Таскай мешки, чтобы ускорить.`, 'info');
             return;
         }
 
         const freePool = [
-            { name: 'Кнопочный Nokia', art: 'nokia', price: 550, rarity: 'common', category: 'tech' },
-            { name: 'Гаечный ключ на 13', art: 'wrench', price: 950, rarity: 'common', category: 'auto' },
+            { name: 'Советский кипятильник', art: 'boiler_ussr', price: 650, rarity: 'common', category: 'tech' },
+            { name: 'Головка на 10', art: 'socket_10mm', price: 950, rarity: 'common', category: 'auto' },
             { name: 'Кассета с боевиком', art: 'vhs', price: 1450, rarity: 'uncommon', category: 'art' },
-            { name: 'Часы «Луч»', art: 'watch', price: 2400, rarity: 'uncommon', category: 'luxury' }
+            { name: 'Слесарная бородка Максима', art: 'maxim_beard', price: 2400, rarity: 'rare', category: 'auto' }
         ];
         const base = freePool[Math.floor(Math.random() * freePool.length)];
         const fl = rollFloatCondition(false);
@@ -2668,7 +2940,7 @@
         };
 
         state.inventory.unshift(picked);
-        state.freeCaseReadyAt = now + 60000;
+        state.freeCaseReadyAt = now + 120000; // Увеличенный кулдаун 120 секунд
 
         playSound('win');
         triggerHaptic('success');
@@ -2796,7 +3068,6 @@
         location.reload();
     }
 
-    // ФУНКЦИИ САМОСТОЯТЕЛЬНОГО СБРОСА ПРОГРЕССА ДЛЯ КАЖДОГО ИГРОКА И СМЕНЫ ПОЗЫВНОГО
     function openResetModal() {
         triggerHaptic('warning');
         document.getElementById('reset-confirm-modal').classList.remove('hidden');
@@ -2815,6 +3086,8 @@
             stamina: 100,
             scrapReadyAt: 0,
             freeCaseReadyAt: 0,
+            caseCooldownUntil: 0,
+            pityCounter: 0,
             referrals: state.referrals || 0,
             godMode: false,
             raidBoxesLeft: 5,
@@ -2868,7 +3141,7 @@
     }
 
     /********************************************************************
-     * 12. НАВИГАЦИЯ, ТАЙМЕРЫ РЕЙДА (4 РАЗА В ДЕНЬ) И ЗАПУСК
+     * 12. НАВИГАЦИЯ, ТАЙМЕРЫ РЕЙДА И ЗАПУСК
      ********************************************************************/
     function switchTab(tabId) {
         triggerHaptic('light');
@@ -2932,7 +3205,6 @@
             btn.disabled = false;
             btn.classList.remove('opacity-40');
         } else {
-            // Расчет времени до следующего 6-часового окна (00:00, 06:00, 12:00, 18:00)
             const sixHoursMs = 6 * 60 * 60 * 1000;
             const nextWindow = Math.ceil(now / sixHoursMs) * sixHoursMs;
             const waitSec = Math.floor((nextWindow - now) / 1000);
@@ -2959,10 +3231,17 @@
             document.getElementById('stamina-bar').style.width = `${state.stamina}%`;
         }
 
-        // Обновление Live-строки каждые 6 секунд
-        if (secTick % 6 === 0) {
-            rotateLiveDropTicker();
+        // Индикатор глобальной перезарядки замков в шапке и модалке
+        const cdBadge = document.getElementById('global-cd-badge');
+        if (now < state.caseCooldownUntil) {
+            const waitCd = Math.ceil((state.caseCooldownUntil - now) / 1000);
+            cdBadge.textContent = `${waitCd} СЕК.`;
+            cdBadge.className = 'font-extrabold text-amber-400';
+        } else {
+            cdBadge.textContent = 'ГОТОВ';
+            cdBadge.className = 'font-extrabold text-emerald-400';
         }
+        updateModalOpenButtonState();
 
         // Таймер скупщика Ашота
         let marketLeft = Math.max(0, Math.floor((state.marketNextUpdate - now) / 1000));
@@ -3004,10 +3283,12 @@
 
     window.onload = function () {
         loadState();
+        initRealtimeDatabaseListeners();
         renderMarketUI();
         updateHeaderUI();
         renderCasesShop();
         renderInventory();
+        renderLeaderboard();
         updateTimers();
         setInterval(updateTimers, 1000);
     };
